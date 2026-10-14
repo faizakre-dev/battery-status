@@ -10,7 +10,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 |---|---|---|---|
 | M1 | Project scaffold | ✅ | Gradle/Kotlin/Compose, Hilt, Room wired, CI, `BatteryInfoSource` + debug dashboard |
 | M2 | Data capture | ✅ | Room schema, snapshot worker, foreground service session tracker |
-| M3 | Dashboard MVP | ⬜ | Live stats, health mapping, real-time UI via Flow |
+| M3 | Dashboard MVP | ✅ | Live stats, health mapping, real-time UI via Flow |
 | M4 | Estimations | ⬜ | Cycle estimator, health %, time-to-full; sysfs best-effort reader |
 | M5 | History | ⬜ | Charts, session list, retention/downsampling |
 | M6 | Polish | ⬜ | Alerts, dark mode, accessibility, icons, strings |
@@ -87,6 +87,28 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - Charge counter deltas are clamped ≥ 0 so a counter reset can't report negative mAh added.
 - Room schema dir exported to `app/schemas/` via the KSP `room.schemaLocation` arg (committed for future migrations).
 
+## M3 — Dashboard MVP (complete)
+
+### Deliverables
+- [x] `core/model/BatteryHealthAssessment.kt` — `HealthLevel` (GOOD/UNKNOWN/ATTENTION/POOR) + `HealthReason` + assessment result
+- [x] `core/health/BatteryHealthEvaluator.kt` — pure mapping of platform health + temperature thresholds (warn 40 °C, critical 45 °C, cold ≤ 0 °C) to a coarse level; suppresses duplicate temperature reasons when health already reports overheat/cold
+- [x] `core/common/BatteryFormatters.kt` — pure `Locale.US` formatters (level, voltage, current mA, temperature)
+- [x] `ui/dashboard/DashboardUiState.kt` — flattened UI model + `BatterySnapshot.toDashboardUiState()` mapper
+- [x] `DashboardViewModel` — exposes `StateFlow<DashboardUiState?>` derived from live snapshots (real-time via Flow)
+- [x] `DashboardScreen` — battery level ring, health badge + reasons, temperature/voltage/current/technology stat cards, last-updated time, `@Preview`
+- [x] Tests: `BatteryHealthEvaluatorTest` (9), `BatteryFormattersTest` (4)
+
+### Verification
+- `./gradlew lint test assembleDebug` → **BUILD SUCCESSFUL**
+- 30 unit tests, 0 failures (mappers 6, tracker 6, DB 5, health evaluator 9, formatters 4)
+
+### Notable decisions / gotchas
+- Temperature is a first-class health signal: a `GOOD` platform reading is downgraded to `ATTENTION`/`POOR` at the thresholds above, so overheating shows up even when the OEM never sets `BATTERY_HEALTH_OVERHEAT`.
+- `HealthLevel` ranking is GOOD < UNKNOWN < ATTENTION < POOR; each contributing signal can only *worsen* the verdict, never improve it.
+- Current is shown as a signed mA value (`CURRENT_NOW`); sign convention varies by OEM, so direction is conveyed by the status label rather than assumed.
+- Kept the M1 raw-value dump out of the dashboard — it belongs on a Details screen (M5/M6).
+
 ## Change log
+- **M3 dashboard MVP** — health evaluator + formatters, `DashboardUiState`, ring/badge/stats UI, tests.
 - **M2 data capture** — Room schema, repository, session tracker, FGS + worker, tests.
 - **Initial scaffold (M1)** — project skeleton, toolchain bootstrap, CI, battery source + tests.
