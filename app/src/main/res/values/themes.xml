@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.BatteryStatus" parent="android:Theme.Material.NoActionBar" />
+</resources>
