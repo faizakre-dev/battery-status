@@ -11,7 +11,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 | M1 | Project scaffold | ✅ | Gradle/Kotlin/Compose, Hilt, Room wired, CI, `BatteryInfoSource` + debug dashboard |
 | M2 | Data capture | ✅ | Room schema, snapshot worker, foreground service session tracker |
 | M3 | Dashboard MVP | ✅ | Live stats, health mapping, real-time UI via Flow |
-| M4 | Estimations | ⬜ | Cycle estimator, health %, time-to-full; sysfs best-effort reader |
+| M4 | Estimations | ✅ | Cycle estimator, health %, time-to-full; sysfs best-effort reader |
 | M5 | History | ⬜ | Charts, session list, retention/downsampling |
 | M6 | Polish | ⬜ | Alerts, dark mode, accessibility, icons, strings |
 | M7 | Hardening | ⬜ | OEM quirks (Samsung, Xiaomi, Pixel, OnePlus), battery audit, Play review |
@@ -108,7 +108,34 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - Current is shown as a signed mA value (`CURRENT_NOW`); sign convention varies by OEM, so direction is conveyed by the status label rather than assumed.
 - Kept the M1 raw-value dump out of the dashboard — it belongs on a Details screen (M5/M6).
 
+## M4 — Estimations (complete)
+
+### Deliverables
+- [x] `core/sysfs/SysfsBatteryReader` (+ `BestEffortSysfsReader`) — best-effort reads of `cycle_count`, `charge_full`, `charge_full_design`; every failure degrades to `null`
+- [x] `core/model/BatteryEstimates.kt` — app-owned estimate state (design capacity, lifetime peak, accumulated cycle fraction, sysfs cycle count)
+- [x] `domain/cycle/CycleEstimator` — `sessionContribution` (mAhAdded / design capacity, clamped) + `effectiveCycles` (kernel value or accumulated)
+- [x] `domain/health/HealthCalculator` — health % = full/peak ÷ design × 100, clamped 0..100
+- [x] `domain/health/DesignCapacityResolver` — sysfs → stored → 1.1× lifetime-peak fallback
+- [x] `domain/stats/TimeToFullEstimator` — EWMA charge-counter rate; `timeToFullMillis` / `remainingMillis`; resets on charge-state flip
+- [x] `domain/estimates/EstimatesReducer` — pure reducer folding sessions/snapshots/sysfs into `BatteryEstimates`
+- [x] Room v2: `battery_estimates` singleton table + DAO; repository `observeEstimates` / `getEstimates` / `saveEstimates`; schema `2.json` exported
+- [x] `ChargeTrackingService` + `PeriodicSnapshotWorker` update estimates on close / each run
+- [x] Dashboard shows estimated **health %**, **charge cycles**, and **time to full / time left** (all `est.`-labelled when not from the kernel)
+- [x] Tests: `CycleEstimatorTest` (5), `HealthCalculatorTest` (3), `DesignCapacityResolverTest` (4), `TimeToFullEstimatorTest` (8), `EstimatesReducerTest` (6), `BestEffortSysfsReaderTest` (3), plus formatter/DB additions
+
+### Verification
+- `./gradlew lint test assembleDebug` → **BUILD SUCCESSFUL**
+- 65 unit tests, 0 failures
+
+### Notable decisions / gotchas
+- **Rate over current sign:** time estimation uses the *charge-counter delta rate* (EWMA), not `current_now`, because OEM sign/unit conventions are unreliable. `timeToFullMillis` requires a positive rate; `remainingMillis` a negative one.
+- **Destructive migration kept:** DB is at version 2 with `fallbackToDestructiveMigration(dropAllTables = true)` (pre-release). A real `MIGRATION_1_2` should be added before any release with user data.
+- **Design capacity fallback** is `1.1 × lifetime peak` (per PLAN §6.1), so a fallback health % tops out around 91% — deliberately conservative and always labelled estimated.
+- `EstimatesReducer` is pure; service/worker only persist when a field other than `lastUpdatedMillis` changes (avoids a write per broadcast).
+- sysfs reads are wrapped in `try/catch` for `IOException` and `SecurityException`; SELinux denials simply yield `null`.
+
 ## Change log
+- **M4 estimations** — sysfs reader, cycle/health/time estimators, `battery_estimates` table (Room v2), dashboard estimates, tests.
 - **M3 dashboard MVP** — health evaluator + formatters, `DashboardUiState`, ring/badge/stats UI, tests.
 - **M2 data capture** — Room schema, repository, session tracker, FGS + worker, tests.
 - **Initial scaffold (M1)** — project skeleton, toolchain bootstrap, CI, battery source + tests.

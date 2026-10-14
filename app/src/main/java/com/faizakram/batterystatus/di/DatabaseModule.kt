@@ -3,6 +3,7 @@ package com.faizakram.batterystatus.di
 import android.content.Context
 import androidx.room.Room
 import com.faizakram.batterystatus.data.local.BatteryDatabase
+import com.faizakram.batterystatus.data.local.dao.BatteryEstimatesDao
 import com.faizakram.batterystatus.data.local.dao.BatterySnapshotDao
 import com.faizakram.batterystatus.data.local.dao.ChargeSessionDao
 import dagger.Module
@@ -30,4 +31,8 @@ object DatabaseModule {
     @Provides
     fun provideSessionDao(database: BatteryDatabase): ChargeSessionDao =
         database.chargeSessionDao()
+
+    @Provides
+    fun provideEstimatesDao(database: BatteryDatabase): BatteryEstimatesDao =
+        database.batteryEstimatesDao()
 }

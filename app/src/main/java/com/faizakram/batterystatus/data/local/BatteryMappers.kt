@@ -1,7 +1,9 @@
 package com.faizakram.batterystatus.data.local
 
+import com.faizakram.batterystatus.core.model.BatteryEstimates
 import com.faizakram.batterystatus.core.model.BatterySnapshot
 import com.faizakram.batterystatus.core.model.ChargeSession
+import com.faizakram.batterystatus.data.local.entity.BatteryEstimatesEntity
 import com.faizakram.batterystatus.data.local.entity.BatterySnapshotEntity
 import com.faizakram.batterystatus.data.local.entity.ChargeSessionEntity
 import kotlin.math.roundToInt
@@ -68,4 +70,21 @@ fun ChargeSessionEntity.toDomain(): ChargeSession = ChargeSession(
     maxTemperatureCelsius = maxTemperatureDeciCelsius?.let { it / 10f },
     avgCurrentUa = avgCurrentUa,
     isFull = isFull,
+)
+
+fun BatteryEstimates.toEntity(): BatteryEstimatesEntity = BatteryEstimatesEntity(
+    id = BatteryEstimatesEntity.SINGLETON_ID,
+    designCapacityUah = designCapacityUah,
+    lifetimePeakUah = lifetimePeakUah,
+    accumulatedCycleFraction = accumulatedCycleFraction,
+    sysfsCycleCount = sysfsCycleCount,
+    lastUpdatedMillis = lastUpdatedMillis,
+)
+
+fun BatteryEstimatesEntity.toDomain(): BatteryEstimates = BatteryEstimates(
+    designCapacityUah = designCapacityUah,
+    lifetimePeakUah = lifetimePeakUah,
+    accumulatedCycleFraction = accumulatedCycleFraction,
+    sysfsCycleCount = sysfsCycleCount,
+    lastUpdatedMillis = lastUpdatedMillis,
 )

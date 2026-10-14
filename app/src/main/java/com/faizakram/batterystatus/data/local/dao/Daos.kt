@@ -2,7 +2,9 @@ package com.faizakram.batterystatus.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.faizakram.batterystatus.data.local.entity.BatteryEstimatesEntity
 import com.faizakram.batterystatus.data.local.entity.BatterySnapshotEntity
 import com.faizakram.batterystatus.data.local.entity.ChargeSessionEntity
 import kotlinx.coroutines.flow.Flow
@@ -49,4 +51,17 @@ interface ChargeSessionDao {
 
     @Query("SELECT COUNT(*) FROM charge_sessions")
     suspend fun count(): Int
+}
+
+@Dao
+interface BatteryEstimatesDao {
+
+    @Query("SELECT * FROM battery_estimates WHERE id = :id")
+    fun observe(id: Int): Flow<BatteryEstimatesEntity?>
+
+    @Query("SELECT * FROM battery_estimates WHERE id = :id")
+    suspend fun get(id: Int): BatteryEstimatesEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(entity: BatteryEstimatesEntity): Long
 }

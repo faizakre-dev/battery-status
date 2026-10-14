@@ -44,3 +44,19 @@ data class ChargeSessionEntity(
     val avgCurrentUa: Int?,
     val isFull: Boolean,
 )
+
+/** Single-row store for app-owned battery estimates (always `id == [SINGLETON_ID]`). */
+@Entity(tableName = "battery_estimates")
+data class BatteryEstimatesEntity(
+    @PrimaryKey
+    val id: Int = SINGLETON_ID,
+    val designCapacityUah: Int?,
+    val lifetimePeakUah: Int?,
+    val accumulatedCycleFraction: Double,
+    val sysfsCycleCount: Int?,
+    val lastUpdatedMillis: Long,
+) {
+    companion object {
+        const val SINGLETON_ID = 1
+    }
+}

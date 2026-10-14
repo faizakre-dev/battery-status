@@ -3,6 +3,8 @@ package com.faizakram.batterystatus.di
 import android.content.Context
 import com.faizakram.batterystatus.core.battery.AndroidBatteryInfoSource
 import com.faizakram.batterystatus.core.battery.BatteryInfoSource
+import com.faizakram.batterystatus.core.sysfs.BestEffortSysfsReader
+import com.faizakram.batterystatus.core.sysfs.SysfsBatteryReader
 import com.faizakram.batterystatus.data.repo.BatteryRepository
 import com.faizakram.batterystatus.data.repo.BatteryRepositoryImpl
 import dagger.Module
@@ -21,6 +23,10 @@ object AppModule {
     fun provideBatteryInfoSource(
         @ApplicationContext context: Context,
     ): BatteryInfoSource = AndroidBatteryInfoSource(context)
+
+    @Provides
+    @Singleton
+    fun provideSysfsBatteryReader(): SysfsBatteryReader = BestEffortSysfsReader()
 
     @Provides
     @Singleton

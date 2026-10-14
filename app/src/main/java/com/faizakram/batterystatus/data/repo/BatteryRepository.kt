@@ -1,5 +1,6 @@
 package com.faizakram.batterystatus.data.repo
 
+import com.faizakram.batterystatus.core.model.BatteryEstimates
 import com.faizakram.batterystatus.core.model.BatterySnapshot
 import com.faizakram.batterystatus.core.model.ChargeSession
 import kotlinx.coroutines.flow.Flow
@@ -20,4 +21,10 @@ interface BatteryRepository {
     suspend fun snapshotCount(): Int
 
     suspend fun trimSnapshotsBefore(cutoffMillis: Long): Int
+
+    fun observeEstimates(): Flow<BatteryEstimates?>
+
+    suspend fun getEstimates(): BatteryEstimates?
+
+    suspend fun saveEstimates(estimates: BatteryEstimates): Long
 }

@@ -1,0 +1,213 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "46412ff37bd3aa2ee0b2d7c29ae807c8",
+    "entities": [
+      {
+        "tableName": "battery_snapshots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestampMillis` INTEGER NOT NULL, `levelPercent` INTEGER, `status` TEXT NOT NULL, `health` TEXT NOT NULL, `plugged` TEXT NOT NULL, `voltageMv` INTEGER, `temperatureDeciCelsius` INTEGER, `currentUa` INTEGER, `chargeCounterUah` INTEGER, `powerMw` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestampMillis",
+            "columnName": "timestampMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "levelPercent",
+            "columnName": "levelPercent",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "health",
+            "columnName": "health",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "plugged",
+            "columnName": "plugged",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "voltageMv",
+            "columnName": "voltageMv",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "temperatureDeciCelsius",
+            "columnName": "temperatureDeciCelsius",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "currentUa",
+            "columnName": "currentUa",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "chargeCounterUah",
+            "columnName": "chargeCounterUah",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "powerMw",
+            "columnName": "powerMw",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_battery_snapshots_timestampMillis",
+            "unique": false,
+            "columnNames": [
+              "timestampMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_battery_snapshots_timestampMillis` ON `${TABLE_NAME}` (`timestampMillis`)"
+          }
+        ]
+      },
+      {
+        "tableName": "charge_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startMillis` INTEGER NOT NULL, `endMillis` INTEGER NOT NULL, `percentFrom` INTEGER, `percentTo` INTEGER, `mahAdded` INTEGER, `maxTemperatureDeciCelsius` INTEGER, `avgCurrentUa` INTEGER, `isFull` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startMillis",
+            "columnName": "startMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endMillis",
+            "columnName": "endMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "percentFrom",
+            "columnName": "percentFrom",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "percentTo",
+            "columnName": "percentTo",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "mahAdded",
+            "columnName": "mahAdded",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "maxTemperatureDeciCelsius",
+            "columnName": "maxTemperatureDeciCelsius",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "avgCurrentUa",
+            "columnName": "avgCurrentUa",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isFull",
+            "columnName": "isFull",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_charge_sessions_startMillis",
+            "unique": false,
+            "columnNames": [
+              "startMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_charge_sessions_startMillis` ON `${TABLE_NAME}` (`startMillis`)"
+          }
+        ]
+      },
+      {
+        "tableName": "battery_estimates",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `designCapacityUah` INTEGER, `lifetimePeakUah` INTEGER, `accumulatedCycleFraction` REAL NOT NULL, `sysfsCycleCount` INTEGER, `lastUpdatedMillis` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "designCapacityUah",
+            "columnName": "designCapacityUah",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lifetimePeakUah",
+            "columnName": "lifetimePeakUah",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "accumulatedCycleFraction",
+            "columnName": "accumulatedCycleFraction",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sysfsCycleCount",
+            "columnName": "sysfsCycleCount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastUpdatedMillis",
+            "columnName": "lastUpdatedMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '46412ff37bd3aa2ee0b2d7c29ae807c8')"
+    ]
+  }
+}

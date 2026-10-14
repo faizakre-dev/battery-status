@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.faizakram.batterystatus.core.common.BatteryFormatters
 import com.faizakram.batterystatus.core.model.BatteryStatus
 import com.faizakram.batterystatus.core.model.HealthLevel
 import com.faizakram.batterystatus.core.model.HealthReason
@@ -82,7 +83,16 @@ private fun DashboardContent(state: DashboardUiState?) {
 
             BatteryLevelRing(state)
             HealthBadge(state)
-            StatsGrid(state)
+            EstimatesRow(state)
+            LiveStats(state)
+
+            state.technology?.let { technology ->
+                Text(
+                    text = "Technology: $technology",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             Text(
                 text = "Updated ${formatTime(state.updatedAtMillis)}",
@@ -151,7 +161,31 @@ private fun HealthBadge(state: DashboardUiState) {
 }
 
 @Composable
-private fun StatsGrid(state: DashboardUiState) {
+private fun EstimatesRow(state: DashboardUiState) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        StatCard(
+            label = "Health",
+            value = state.healthPercent?.let { "$it%" },
+            modifier = Modifier.weight(1f),
+            estimated = state.healthPercentEstimated,
+        )
+        StatCard(
+            label = "Cycles",
+            value = BatteryFormatters.cycles(state.estimatedCycles),
+            modifier = Modifier.weight(1f),
+            estimated = !state.cyclesFromSystem,
+        )
+    }
+}
+
+@Composable
+private fun LiveStats(state: DashboardUiState) {
+    val timeValue = state.timeToFullText ?: state.timeRemainingText
+    val timeLabel = if (state.timeToFullText != null) "Time to full" else "Time left"
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatCard("Temperature", state.temperatureText, Modifier.weight(1f))
@@ -159,13 +193,18 @@ private fun StatsGrid(state: DashboardUiState) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatCard("Current", state.currentText, Modifier.weight(1f))
-            StatCard("Technology", state.technology, Modifier.weight(1f))
+            StatCard(timeLabel, timeValue, Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun StatCard(label: String, value: String?, modifier: Modifier = Modifier) {
+private fun StatCard(
+    label: String,
+    value: String?,
+    modifier: Modifier = Modifier,
+    estimated: Boolean = false,
+) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
@@ -177,12 +216,16 @@ private fun StatCard(label: String, value: String?, modifier: Modifier = Modifie
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = label,
+                text = if (estimated) "$label · est." else label,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = value ?: "—",
+                text = when {
+                    value == null -> "—"
+                    estimated -> "≈ $value"
+                    else -> value
+                },
                 style = MaterialTheme.typography.titleLarge,
             )
         }
@@ -250,6 +293,12 @@ private fun DashboardContentPreview() {
                 currentText = "-412 mA",
                 technology = "Li-ion",
                 updatedAtMillis = 0L,
+                estimatedCycles = 128.0,
+                cyclesFromSystem = false,
+                healthPercent = 92,
+                healthPercentEstimated = true,
+                timeToFullText = null,
+                timeRemainingText = "5h 12m",
             ),
         )
     }

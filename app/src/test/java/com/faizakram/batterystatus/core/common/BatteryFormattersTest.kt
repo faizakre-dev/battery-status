@@ -32,4 +32,25 @@ class BatteryFormattersTest {
         assertEquals("72%", BatteryFormatters.levelPercent(72))
         assertEquals("--", BatteryFormatters.levelPercent(null))
     }
+
+    @Test
+    fun `formats cycles by flooring the fractional part`() {
+        assertEquals("128", BatteryFormatters.cycles(128.9))
+        assertEquals("0", BatteryFormatters.cycles(0.6))
+        assertNull(BatteryFormatters.cycles(null))
+    }
+
+    @Test
+    fun `formats durations into hours and minutes`() {
+        assertEquals("45m", BatteryFormatters.duration(45 * 60_000L))
+        assertEquals("1h 23m", BatteryFormatters.duration(83 * 60_000L))
+        assertEquals("2h", BatteryFormatters.duration(120 * 60_000L))
+    }
+
+    @Test
+    fun `duration is null for missing or non-positive values`() {
+        assertNull(BatteryFormatters.duration(null))
+        assertNull(BatteryFormatters.duration(0L))
+        assertNull(BatteryFormatters.duration(-1L))
+    }
 }
