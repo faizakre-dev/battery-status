@@ -3,6 +3,8 @@ package com.faizakram.batterystatus.di
 import android.content.Context
 import com.faizakram.batterystatus.core.battery.AndroidBatteryInfoSource
 import com.faizakram.batterystatus.core.battery.BatteryInfoSource
+import com.faizakram.batterystatus.data.repo.BatteryRepository
+import com.faizakram.batterystatus.data.repo.BatteryRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,4 +21,8 @@ object AppModule {
     fun provideBatteryInfoSource(
         @ApplicationContext context: Context,
     ): BatteryInfoSource = AndroidBatteryInfoSource(context)
+
+    @Provides
+    @Singleton
+    fun provideBatteryRepository(impl: BatteryRepositoryImpl): BatteryRepository = impl
 }

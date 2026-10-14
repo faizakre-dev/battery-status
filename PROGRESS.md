@@ -9,7 +9,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 | # | Milestone | Status | Notes |
 |---|---|---|---|
 | M1 | Project scaffold | ✅ | Gradle/Kotlin/Compose, Hilt, Room wired, CI, `BatteryInfoSource` + debug dashboard |
-| M2 | Data capture | ⬜ | Room schema, snapshot worker, foreground service session tracker |
+| M2 | Data capture | ✅ | Room schema, snapshot worker, foreground service session tracker |
 | M3 | Dashboard MVP | ⬜ | Live stats, health mapping, real-time UI via Flow |
 | M4 | Estimations | ⬜ | Cycle estimator, health %, time-to-full; sysfs best-effort reader |
 | M5 | History | ⬜ | Charts, session list, retention/downsampling |
@@ -60,5 +60,33 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
   compileSdk { version = release(37) { minorApiLevel = 2 } }
   ```
 
+## M2 — Data capture (complete)
+
+### Deliverables
+- [x] Room schema (v1): `battery_snapshots` + `charge_sessions` entities, enum converters, exported schemas (`app/schemas/`)
+- [x] DAOs (`BatterySnapshotDao`, `ChargeSessionDao`) with Flow observe + count/trim queries
+- [x] `BatteryRepository` / `BatteryRepositoryImpl` — app-facing persistence gateway
+- [x] `ChargeSessionTracker` — pure session-boundary detection (opens on plug-in, closes on unplug, computes mAh added / peak temp / avg current / full-charge flag)
+- [x] `ChargeTrackingService` — foreground service (dataSync type) sampling every broadcast while plugged in
+- [x] `PeriodicSnapshotWorker` + `SnapshotScheduler` — 15-min background sampler via WorkManager (on-demand init, Hilt worker)
+- [x] `BootCompletedReceiver` — resumes tracking after reboot if plugged in
+- [x] Manifest: FGS + `dataSync` type, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, WorkManager initializer removal
+- [x] Tests: `ChargeSessionTrackerTest` (6), `BatteryDatabaseTest` (Robolectric, 5)
+
+### Verification
+- `./gradlew lint test assembleDebug` → **BUILD SUCCESSFUL**
+- 17 unit tests, 0 failures (`BatteryMappersTest` 6, `ChargeSessionTrackerTest` 6, `BatteryDatabaseTest` 5)
+
+### New dependencies
+`androidx.work:work-runtime-ktx:2.12.0`, `androidx.hilt:hilt-work:1.4.0` (+ compiler), `org.robolectric:robolectric:4.17`, `androidx.test:core:1.7.0`, `androidx.room:room-testing:2.8.5`
+
+### Notable decisions / gotchas
+- WorkManager uses **on-demand init**: `Application implements Configuration.Provider` and the manifest removes the default `WorkManagerInitializer` (merged via `tools:node`).
+- FGS on targetSdk 36 requires a `foregroundServiceType` + matching permission → chose `dataSync` + `FOREGROUND_SERVICE_DATA_SYNC` (capped by Android 15's 6 h/day budget — acceptable for charge sessions).
+- Robolectric tests pin `@Config(sdk = [34], application = Application::class)` so they don't run `BatteryStatusApp.onCreate` (which schedules WorkManager).
+- Charge counter deltas are clamped ≥ 0 so a counter reset can't report negative mAh added.
+- Room schema dir exported to `app/schemas/` via the KSP `room.schemaLocation` arg (committed for future migrations).
+
 ## Change log
+- **M2 data capture** — Room schema, repository, session tracker, FGS + worker, tests.
 - **Initial scaffold (M1)** — project skeleton, toolchain bootstrap, CI, battery source + tests.

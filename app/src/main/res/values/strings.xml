@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Battery Health</string>
+
+    <string name="notification_channel_tracking">Charge tracking</string>
+    <string name="notification_channel_tracking_desc">Shown while charging data is being recorded</string>
+    <string name="notification_tracking_title">Tracking charging session</string>
+    <string name="notification_tracking_text">Battery Health is recording charge data</string>
 </resources>

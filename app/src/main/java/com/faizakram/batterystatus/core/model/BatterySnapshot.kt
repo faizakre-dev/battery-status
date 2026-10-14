@@ -42,3 +42,9 @@ data class BatterySnapshot(
     val capacityPercent: Int?,
     val energyCounterUah: Int?,
 )
+
+/** True when the device is connected to a power source or actively charging. */
+val BatterySnapshot.isCharging: Boolean
+    get() = plugged != PlugType.NONE ||
+        status == BatteryStatus.CHARGING ||
+        status == BatteryStatus.FULL
