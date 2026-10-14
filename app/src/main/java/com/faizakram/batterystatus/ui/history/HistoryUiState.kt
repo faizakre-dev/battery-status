@@ -1,13 +1,15 @@
 package com.faizakram.batterystatus.ui.history
 
+import androidx.annotation.StringRes
+import com.faizakram.batterystatus.R
 import com.faizakram.batterystatus.core.common.BatteryFormatters
 import com.faizakram.batterystatus.core.model.BatterySnapshot
 import com.faizakram.batterystatus.core.model.ChargeSession
 
 /** The selectable look-back windows for the history screen. */
-enum class HistoryRange(val label: String, val durationMillis: Long) {
-    DAY("24h", 24L * 60 * 60 * 1000),
-    WEEK("7d", 7L * 24 * 60 * 60 * 1000),
+enum class HistoryRange(@StringRes val labelRes: Int, val durationMillis: Long) {
+    DAY(R.string.history_range_day, 24L * 60 * 60 * 1000),
+    WEEK(R.string.history_range_week, 7L * 24 * 60 * 60 * 1000),
 }
 
 /** Presentation-ready charge session row. */

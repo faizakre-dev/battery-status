@@ -1,5 +1,6 @@
 package com.faizakram.batterystatus.ui.history
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,15 +21,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.faizakram.batterystatus.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-private val TemperatureColor = Color(0xFFE64A19)
 
 @Composable
 fun HistoryScreen(
@@ -58,7 +59,7 @@ private fun HistoryContent(
         item {
             Column(modifier = Modifier.padding(top = 16.dp)) {
                 Text(
-                    text = "History",
+                    text = stringResource(R.string.history_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -68,25 +69,27 @@ private fun HistoryContent(
 
         item {
             ChartCard(
-                title = "Battery level",
+                title = stringResource(R.string.history_chart_level),
                 series = state.levelSeries,
                 lineColor = MaterialTheme.colorScheme.primary,
                 valueLabel = { "$it%" },
+                descriptionRes = R.string.a11y_chart_level,
             )
         }
 
         item {
             ChartCard(
-                title = "Temperature",
+                title = stringResource(R.string.history_chart_temperature),
                 series = state.temperatureSeries,
-                lineColor = TemperatureColor,
+                lineColor = MaterialTheme.colorScheme.tertiary,
                 valueLabel = { String.format(Locale.US, "%.1f °C", it) },
+                descriptionRes = R.string.a11y_chart_temperature,
             )
         }
 
         item {
             Text(
-                text = "Charge sessions",
+                text = stringResource(R.string.history_sessions),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 4.dp),
@@ -96,7 +99,7 @@ private fun HistoryContent(
         if (state.sessions.isEmpty()) {
             item {
                 Text(
-                    text = "No sessions in this range.",
+                    text = stringResource(R.string.history_no_sessions),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -122,7 +125,7 @@ private fun RangeSelector(
             FilterChip(
                 selected = range == selected,
                 onClick = { onSelectRange(range) },
-                label = { Text(range.label) },
+                label = { Text(stringResource(range.labelRes)) },
             )
         }
     }
@@ -134,7 +137,16 @@ private fun ChartCard(
     series: ChartSeries,
     lineColor: Color,
     valueLabel: (Float) -> String,
+    @StringRes descriptionRes: Int,
 ) {
+    val min = series.minValue
+    val max = series.maxValue
+    val description = if (min != null && max != null) {
+        stringResource(descriptionRes, valueLabel(min), valueLabel(max))
+    } else {
+        null
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -146,11 +158,9 @@ private fun ChartCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
-                val min = series.minValue
-                val max = series.maxValue
                 if (min != null && max != null) {
                     Text(
-                        text = "${valueLabel(min)} – ${valueLabel(max)}",
+                        text = stringResource(R.string.history_range_summary, valueLabel(min), valueLabel(max)),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -159,6 +169,7 @@ private fun ChartCard(
             LineChart(
                 series = series,
                 lineColor = lineColor,
+                contentDescription = description,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(160.dp)
@@ -191,7 +202,7 @@ private fun SessionRow(session: SessionUi) {
                         contentColor = MaterialTheme.colorScheme.primary,
                     ) {
                         Text(
-                            text = "Full",
+                            text = stringResource(R.string.history_session_full),
                             style = MaterialTheme.typography.labelMedium,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         )
@@ -212,19 +223,25 @@ private fun SessionRow(session: SessionUi) {
     }
 }
 
+@Composable
 private fun percentSummary(session: SessionUi): String {
     val from = session.percentFrom?.let { "$it%" } ?: "--"
     val to = session.percentTo?.let { "$it%" } ?: "--"
-    return "$from → $to"
+    return stringResource(R.string.history_session_percent, from, to)
 }
 
+@Composable
 private fun detailLine(session: SessionUi): String {
     val parts = buildList {
-        session.mahAdded?.let { add("+$it mAh") }
+        session.mahAdded?.let { add(stringResource(R.string.history_session_mah, it)) }
         session.durationText?.let { add(it) }
-        session.maxTemperatureText?.let { add("max $it") }
+        session.maxTemperatureText?.let { add(stringResource(R.string.history_session_max_temp, it)) }
     }
-    return if (parts.isEmpty()) "No measurements" else parts.joinToString(" · ")
+    return if (parts.isEmpty()) {
+        stringResource(R.string.history_session_none)
+    } else {
+        parts.joinToString(" · ")
+    }
 }
 
 private fun formatDateTime(millis: Long): String =

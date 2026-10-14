@@ -1,5 +1,6 @@
 package com.faizakram.batterystatus.ui.dashboard
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,26 +24,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.faizakram.batterystatus.R
 import com.faizakram.batterystatus.core.common.BatteryFormatters
 import com.faizakram.batterystatus.core.model.BatteryStatus
 import com.faizakram.batterystatus.core.model.HealthLevel
 import com.faizakram.batterystatus.core.model.HealthReason
 import com.faizakram.batterystatus.core.model.PlugType
 import com.faizakram.batterystatus.ui.theme.BatteryStatusTheme
+import com.faizakram.batterystatus.ui.theme.StatusPalette
+import com.faizakram.batterystatus.ui.theme.statusPalette
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-private val GoodGreen = Color(0xFF2E7D32)
-private val WarningAmber = Color(0xFFF9A825)
-private val DangerRed = Color(0xFFC62828)
-private val NeutralGray = Color(0xFF9E9E9E)
 
 @Composable
 fun DashboardScreen(
@@ -64,7 +67,7 @@ private fun DashboardContent(state: DashboardUiState?, modifier: Modifier = Modi
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Text(
-            text = "Battery",
+            text = stringResource(R.string.dashboard_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.fillMaxWidth(),
@@ -72,7 +75,7 @@ private fun DashboardContent(state: DashboardUiState?, modifier: Modifier = Modi
 
         if (state == null) {
             Text(
-                text = "Reading battery status…",
+                text = stringResource(R.string.dashboard_loading),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -86,14 +89,14 @@ private fun DashboardContent(state: DashboardUiState?, modifier: Modifier = Modi
 
         state.technology?.let { technology ->
             Text(
-                text = "Technology: $technology",
+                text = stringResource(R.string.dashboard_technology, technology),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
         Text(
-            text = "Updated ${formatTime(state.updatedAtMillis)}",
+            text = stringResource(R.string.dashboard_updated, formatTime(state.updatedAtMillis)),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -103,9 +106,21 @@ private fun DashboardContent(state: DashboardUiState?, modifier: Modifier = Modi
 @Composable
 private fun BatteryLevelRing(state: DashboardUiState) {
     val fraction = ((state.levelPercent ?: 0) / 100f).coerceIn(0f, 1f)
-    val ringColor = ringColor(state)
+    val ringColor = ringColor(state, statusPalette())
+    val statusText = stringResource(statusLabelRes(state.status, state.plugged))
+    val levelText = state.levelPercent?.let { "$it%" }
+    val description = if (levelText != null) {
+        stringResource(R.string.a11y_level_ring, levelText, statusText)
+    } else {
+        stringResource(R.string.a11y_level_ring_unknown, statusText)
+    }
 
-    Box(modifier = Modifier.size(220.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = Modifier
+            .size(220.dp)
+            .semantics(mergeDescendants = true) { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
         CircularProgressIndicator(
             progress = { fraction },
             modifier = Modifier.fillMaxSize(),
@@ -114,14 +129,17 @@ private fun BatteryLevelRing(state: DashboardUiState) {
             strokeWidth = 18.dp,
             strokeCap = StrokeCap.Round,
         )
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.clearAndSetSemantics {},
+        ) {
             Text(
-                text = state.levelPercent?.let { "$it%" } ?: "--",
+                text = levelText ?: "--",
                 style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = statusLabel(state.status, state.plugged),
+                text = statusText,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -135,21 +153,23 @@ private fun HealthBadge(state: DashboardUiState) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        val color = healthColor(state.healthLevel)
+        val color = healthColor(state.healthLevel, statusPalette())
         Surface(
             color = color.copy(alpha = 0.15f),
             contentColor = color,
             shape = RoundedCornerShape(50),
         ) {
             Text(
-                text = healthLabel(state.healthLevel),
+                text = stringResource(healthLabelRes(state.healthLevel)),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
             )
         }
         Text(
-            text = state.healthReasons.joinToString(" · ", transform = ::reasonLabel),
+            text = state.healthReasons
+                .map { stringResource(reasonRes(it)) }
+                .joinToString(" · "),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -164,13 +184,13 @@ private fun EstimatesRow(state: DashboardUiState) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         StatCard(
-            label = "Health",
+            label = stringResource(R.string.dashboard_stat_health),
             value = state.healthPercent?.let { "$it%" },
             modifier = Modifier.weight(1f),
             estimated = state.healthPercentEstimated,
         )
         StatCard(
-            label = "Cycles",
+            label = stringResource(R.string.dashboard_stat_cycles),
             value = BatteryFormatters.cycles(state.estimatedCycles),
             modifier = Modifier.weight(1f),
             estimated = !state.cyclesFromSystem,
@@ -181,15 +201,30 @@ private fun EstimatesRow(state: DashboardUiState) {
 @Composable
 private fun LiveStats(state: DashboardUiState) {
     val timeValue = state.timeToFullText ?: state.timeRemainingText
-    val timeLabel = if (state.timeToFullText != null) "Time to full" else "Time left"
+    val timeLabel = stringResource(
+        if (state.timeToFullText != null) R.string.dashboard_stat_time_to_full
+        else R.string.dashboard_stat_time_left,
+    )
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard("Temperature", state.temperatureText, Modifier.weight(1f))
-            StatCard("Voltage", state.voltageText, Modifier.weight(1f))
+            StatCard(
+                stringResource(R.string.dashboard_stat_temperature),
+                state.temperatureText,
+                Modifier.weight(1f),
+            )
+            StatCard(
+                stringResource(R.string.dashboard_stat_voltage),
+                state.voltageText,
+                Modifier.weight(1f),
+            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard("Current", state.currentText, Modifier.weight(1f))
+            StatCard(
+                stringResource(R.string.dashboard_stat_current),
+                state.currentText,
+                Modifier.weight(1f),
+            )
             StatCard(timeLabel, timeValue, Modifier.weight(1f))
         }
     }
@@ -209,18 +244,20 @@ private fun StatCard(
         ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .semantics(mergeDescendants = true) {},
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = if (estimated) "$label · est." else label,
+                text = if (estimated) stringResource(R.string.stat_label_estimated, label) else label,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = when {
-                    value == null -> "—"
-                    estimated -> "≈ $value"
+                    value == null -> stringResource(R.string.stat_placeholder)
+                    estimated -> stringResource(R.string.stat_approx, value)
                     else -> value
                 },
                 style = MaterialTheme.typography.titleLarge,
@@ -229,46 +266,50 @@ private fun StatCard(
     }
 }
 
-private fun ringColor(state: DashboardUiState): Color = when {
-    state.status == BatteryStatus.CHARGING || state.status == BatteryStatus.FULL -> GoodGreen
-    state.levelPercent == null -> NeutralGray
-    state.levelPercent <= 15 -> DangerRed
-    state.levelPercent <= 30 -> WarningAmber
-    else -> GoodGreen
+private fun ringColor(state: DashboardUiState, palette: StatusPalette): Color = when {
+    state.status == BatteryStatus.CHARGING || state.status == BatteryStatus.FULL -> palette.good
+    state.levelPercent == null -> palette.neutral
+    state.levelPercent <= 15 -> palette.danger
+    state.levelPercent <= 30 -> palette.warning
+    else -> palette.good
 }
 
-private fun healthColor(level: HealthLevel): Color = when (level) {
-    HealthLevel.GOOD -> GoodGreen
-    HealthLevel.ATTENTION -> WarningAmber
-    HealthLevel.POOR -> DangerRed
-    HealthLevel.UNKNOWN -> NeutralGray
+private fun healthColor(level: HealthLevel, palette: StatusPalette): Color = when (level) {
+    HealthLevel.GOOD -> palette.good
+    HealthLevel.ATTENTION -> palette.warning
+    HealthLevel.POOR -> palette.danger
+    HealthLevel.UNKNOWN -> palette.neutral
 }
 
-private fun healthLabel(level: HealthLevel): String = when (level) {
-    HealthLevel.GOOD -> "Good"
-    HealthLevel.ATTENTION -> "Attention"
-    HealthLevel.POOR -> "Poor"
-    HealthLevel.UNKNOWN -> "Unknown"
+@StringRes
+private fun healthLabelRes(level: HealthLevel): Int = when (level) {
+    HealthLevel.GOOD -> R.string.health_good
+    HealthLevel.ATTENTION -> R.string.health_attention
+    HealthLevel.POOR -> R.string.health_poor
+    HealthLevel.UNKNOWN -> R.string.health_unknown
 }
 
-private fun reasonLabel(reason: HealthReason): String = when (reason) {
-    HealthReason.HEALTHY -> "Healthy"
-    HealthReason.OVERHEAT -> "Overheating"
-    HealthReason.COLD -> "Too cold"
-    HealthReason.DEAD -> "Battery dead"
-    HealthReason.OVER_VOLTAGE -> "Over voltage"
-    HealthReason.FAILURE -> "Reported failure"
-    HealthReason.UNKNOWN -> "Health unavailable"
-    HealthReason.TEMPERATURE_HIGH -> "High temperature"
-    HealthReason.TEMPERATURE_LOW -> "Low temperature"
+@StringRes
+private fun reasonRes(reason: HealthReason): Int = when (reason) {
+    HealthReason.HEALTHY -> R.string.reason_healthy
+    HealthReason.OVERHEAT -> R.string.reason_overheat
+    HealthReason.COLD -> R.string.reason_cold
+    HealthReason.DEAD -> R.string.reason_dead
+    HealthReason.OVER_VOLTAGE -> R.string.reason_over_voltage
+    HealthReason.FAILURE -> R.string.reason_failure
+    HealthReason.UNKNOWN -> R.string.reason_unknown
+    HealthReason.TEMPERATURE_HIGH -> R.string.reason_temperature_high
+    HealthReason.TEMPERATURE_LOW -> R.string.reason_temperature_low
 }
 
-private fun statusLabel(status: BatteryStatus, plugged: PlugType): String = when (status) {
-    BatteryStatus.CHARGING -> "Charging"
-    BatteryStatus.FULL -> "Fully charged"
-    BatteryStatus.DISCHARGING -> "Discharging"
-    BatteryStatus.NOT_CHARGING -> if (plugged != PlugType.NONE) "Plugged in" else "Not charging"
-    BatteryStatus.UNKNOWN -> "Unknown"
+@StringRes
+private fun statusLabelRes(status: BatteryStatus, plugged: PlugType): Int = when (status) {
+    BatteryStatus.CHARGING -> R.string.status_charging
+    BatteryStatus.FULL -> R.string.status_full
+    BatteryStatus.DISCHARGING -> R.string.status_discharging
+    BatteryStatus.NOT_CHARGING ->
+        if (plugged != PlugType.NONE) R.string.status_plugged_in else R.string.status_not_charging
+    BatteryStatus.UNKNOWN -> R.string.status_unknown
 }
 
 private fun formatTime(millis: Long): String =

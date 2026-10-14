@@ -13,23 +13,36 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.faizakram.batterystatus.R
 
 /**
  * Minimal dependency-free time-series line chart. Draws horizontal gridlines, a
  * soft area fill and the line itself; y is mapped from [ChartSeries.minY]..[ChartSeries.maxY].
+ *
+ * Pass [contentDescription] to expose a text summary to accessibility services.
  */
 @Composable
 fun LineChart(
     series: ChartSeries,
     lineColor: Color,
     modifier: Modifier = Modifier,
+    contentDescription: String? = null,
     gridColor: Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f),
 ) {
+    val describedModifier = if (contentDescription != null) {
+        modifier.semantics { this.contentDescription = contentDescription }
+    } else {
+        modifier
+    }
+
     if (series.isEmpty) {
-        Box(modifier, contentAlignment = Alignment.Center) {
+        Box(describedModifier, contentAlignment = Alignment.Center) {
             Text(
-                text = "No data for this range",
+                text = stringResource(R.string.history_no_data),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -37,7 +50,7 @@ fun LineChart(
         return
     }
 
-    Canvas(modifier) {
+    Canvas(describedModifier) {
         val inset = 6.dp.toPx()
         val width = (size.width - inset * 2).coerceAtLeast(1f)
         val height = (size.height - inset * 2).coerceAtLeast(1f)

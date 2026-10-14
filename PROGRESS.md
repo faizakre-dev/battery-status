@@ -13,7 +13,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 | M3 | Dashboard MVP | ✅ | Live stats, health mapping, real-time UI via Flow |
 | M4 | Estimations | ✅ | Cycle estimator, health %, time-to-full; sysfs best-effort reader |
 | M5 | History | ✅ | Charts (level/temperature), session list, retention/downsampling |
-| M6 | Polish | 🟡 | Alerts, dark mode, accessibility, icons, strings (launcher icon done) |
+| M6 | Polish | ✅ | Dark mode + dynamic color, full-charge/overheat alerts, a11y, strings, launcher icon |
 | M7 | Hardening | ⬜ | OEM quirks (Samsung, Xiaomi, Pixel, OnePlus), battery audit, Play review |
 
 ## M1 — Project scaffold (complete)
@@ -163,7 +163,32 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - **History range boundaries are captured when the range changes** (not on a timer), so the "since" window updates on tab/range interaction rather than continuously.
 - Launcher icon uses an adaptive vector (minSdk 26 ⇒ `mipmap-anydpi-v26` is universally resolvable; no density PNGs needed). To swap in custom artwork: Android Studio → `res` → New → Image Asset → Launcher Icons, then replace the foreground layer.
 
+## M6 — Polish (complete)
+
+### Deliverables
+- [x] **Dark mode**: `ui/theme/Color.kt` brand light/dark Material 3 schemes + dynamic color (Android 12+) in `BatteryStatusTheme`; `values-night/themes.xml` + night `window_background` so the window has no light flash in dark mode
+- [x] **Dark-aware status colors**: `StatusPalette` (`statusPalette()`) replaces hard-coded green/amber/red/grey; used by the dashboard ring/health badge and the history temperature chart
+- [x] **Alerts**: pure `domain/alerts/BatteryAlertDecider` (overheat with 45 °C/42 °C hysteresis; full-charge once per plugged-in episode) + `notifications/AlertNotifier` (dedicated `battery_alerts` channel, resumes the app on tap); wired into `ChargeTrackingService`
+- [x] **Runtime permission**: `POST_NOTIFICATIONS` requested from `AppRoot` on Android 13+
+- [x] **Accessibility**: level ring exposes one merged description ("Battery level 72%, Charging"); stat cards merge label+value; charts expose a min/max summary description; nav icons labelled; decorative inner ring content cleared
+- [x] **Strings**: every user-visible string moved to `res/values/strings.xml` (nav, dashboard, health/status/reason labels, history, alerts, a11y); `HistoryRange` now carries a `@StringRes` label
+- [x] Tests: `BatteryAlertDeciderTest` (8)
+
+### Verification
+- `./gradlew lint test assembleDebug` → **BUILD SUCCESSFUL**
+- 95 unit tests, 0 failures
+- `lint` clean (no errors)
+
+### Notable decisions / gotchas
+- **Alerts live in the foreground service**, evaluated per snapshot while charging. A stateless WorkManager run can't safely de-duplicate episodes, so overheat-while-discharging (screen off) is out of v1 scope.
+- **Hysteresis** (fire ≥45 °C, re-arm ≤42 °C) prevents alert flapping around a single threshold; full-charge re-arms on unplug.
+- **`AlertNotifier` never throws**: it checks `areNotificationsEnabled()` and wraps `notify` in `runCatching`, so a missing permission can't kill session tracking. `@SuppressLint("MissingPermission")` documents the guarded call.
+- **Accessibility uses `clearAndSetSemantics`** on the ring's inner text so TalkBack reads the composed summary once instead of the raw "72%" / "Charging" fragments.
+- **Charts stay theme-aware** (`primary` / `tertiary`) rather than a fixed orange, so they adapt to dark mode and dynamic color.
+- Manual validation on 2 physical devices (milestone DoD) is still pending; covered by unit tests + lint only so far.
+
 ## Change log
+- **M6 polish** — dark mode + dynamic color, alerts (full charge / overheat), accessibility semantics, string externalization, runtime notification permission.
 - **M5 history + launcher icon** — history screen, dependency-free Canvas charts, session list, bottom-nav root, hourly retention/downsampling (Room v3), adaptive launcher icon, tests.
 - **M4 estimations** — sysfs reader, cycle/health/time estimators, `battery_estimates` table (Room v2), dashboard estimates, tests.
 - **M3 dashboard MVP** — health evaluator + formatters, `DashboardUiState`, ring/badge/stats UI, tests.

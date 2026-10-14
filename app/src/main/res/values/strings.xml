@@ -1,6 +1,82 @@
 <resources>
     <string name="app_name">Battery Health</string>
 
+    <!-- Navigation -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_history">History</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Battery</string>
+    <string name="dashboard_loading">Reading battery status…</string>
+    <string name="dashboard_technology">Technology: %1$s</string>
+    <string name="dashboard_updated">Updated %1$s</string>
+    <string name="dashboard_stat_health">Health</string>
+    <string name="dashboard_stat_cycles">Cycles</string>
+    <string name="dashboard_stat_temperature">Temperature</string>
+    <string name="dashboard_stat_voltage">Voltage</string>
+    <string name="dashboard_stat_current">Current</string>
+    <string name="dashboard_stat_time_to_full">Time to full</string>
+    <string name="dashboard_stat_time_left">Time left</string>
+    <string name="stat_placeholder">—</string>
+    <string name="stat_approx">≈ %1$s</string>
+    <string name="stat_label_estimated">%1$s · est.</string>
+
+    <!-- Health levels -->
+    <string name="health_good">Good</string>
+    <string name="health_attention">Attention</string>
+    <string name="health_poor">Poor</string>
+    <string name="health_unknown">Unknown</string>
+
+    <!-- Health reasons -->
+    <string name="reason_healthy">Healthy</string>
+    <string name="reason_overheat">Overheating</string>
+    <string name="reason_cold">Too cold</string>
+    <string name="reason_dead">Battery dead</string>
+    <string name="reason_over_voltage">Over voltage</string>
+    <string name="reason_failure">Reported failure</string>
+    <string name="reason_unknown">Health unavailable</string>
+    <string name="reason_temperature_high">High temperature</string>
+    <string name="reason_temperature_low">Low temperature</string>
+
+    <!-- Battery status -->
+    <string name="status_charging">Charging</string>
+    <string name="status_full">Fully charged</string>
+    <string name="status_discharging">Discharging</string>
+    <string name="status_plugged_in">Plugged in</string>
+    <string name="status_not_charging">Not charging</string>
+    <string name="status_unknown">Unknown</string>
+
+    <!-- Accessibility -->
+    <string name="a11y_level_ring">Battery level %1$s, %2$s</string>
+    <string name="a11y_level_ring_unknown">Battery level unknown, %1$s</string>
+
+    <!-- History -->
+    <string name="history_title">History</string>
+    <string name="history_range_day">24h</string>
+    <string name="history_range_week">7d</string>
+    <string name="history_chart_level">Battery level</string>
+    <string name="history_chart_temperature">Temperature</string>
+    <string name="history_sessions">Charge sessions</string>
+    <string name="history_no_sessions">No sessions in this range.</string>
+    <string name="history_no_data">No data for this range</string>
+    <string name="history_range_summary">%1$s – %2$s</string>
+    <string name="history_session_full">Full</string>
+    <string name="history_session_percent">%1$s → %2$s</string>
+    <string name="history_session_mah">+%1$d mAh</string>
+    <string name="history_session_max_temp">max %1$s</string>
+    <string name="history_session_none">No measurements</string>
+    <string name="a11y_chart_level">Battery level chart from %1$s to %2$s.</string>
+    <string name="a11y_chart_temperature">Temperature chart from %1$s to %2$s.</string>
+
+    <!-- Alerts -->
+    <string name="notification_channel_alerts">Battery alerts</string>
+    <string name="notification_channel_alerts_desc">Warnings for full charge and high temperature</string>
+    <string name="alert_full_title">Fully charged</string>
+    <string name="alert_full_text">Battery is fully charged. Unplug to protect battery health.</string>
+    <string name="alert_overheat_title">Battery is running hot</string>
+    <string name="alert_overheat_text">Temperature reached %1$s while charging.</string>
+
+    <!-- Charge tracking service -->
     <string name="notification_channel_tracking">Charge tracking</string>
     <string name="notification_channel_tracking_desc">Shown while charging data is being recorded</string>
     <string name="notification_tracking_title">Tracking charging session</string>

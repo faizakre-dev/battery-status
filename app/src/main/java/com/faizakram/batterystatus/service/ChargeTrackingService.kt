@@ -22,8 +22,10 @@ import com.faizakram.batterystatus.core.model.isCharging
 import com.faizakram.batterystatus.core.sysfs.SysfsBatteryData
 import com.faizakram.batterystatus.core.sysfs.SysfsBatteryReader
 import com.faizakram.batterystatus.data.repo.BatteryRepository
+import com.faizakram.batterystatus.domain.alerts.BatteryAlertDecider
 import com.faizakram.batterystatus.domain.estimates.EstimateUpdate
 import com.faizakram.batterystatus.domain.estimates.EstimatesReducer
+import com.faizakram.batterystatus.notifications.AlertNotifier
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,8 +47,10 @@ class ChargeTrackingService : Service() {
     @Inject lateinit var batteryInfoSource: BatteryInfoSource
     @Inject lateinit var repository: BatteryRepository
     @Inject lateinit var sysfsBatteryReader: SysfsBatteryReader
+    @Inject lateinit var alertNotifier: AlertNotifier
 
     private val tracker = ChargeSessionTracker()
+    private val alertDecider = BatteryAlertDecider()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var collectJob: Job? = null
     private var sysfsData: SysfsBatteryData? = null
@@ -56,6 +60,7 @@ class ChargeTrackingService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        alertNotifier.ensureChannel()
         startAsForeground()
     }
 
@@ -76,9 +81,16 @@ class ChargeTrackingService : Service() {
                 }
             }
             updateEstimates(snapshot, events)
+            evaluateAlerts(snapshot)
             if (!snapshot.isCharging) {
                 stopSelf()
             }
+        }
+    }
+
+    private fun evaluateAlerts(snapshot: BatterySnapshot) {
+        alertDecider.onSnapshot(snapshot).forEach { alert ->
+            alertNotifier.notify(alert, snapshot)
         }
     }
 
