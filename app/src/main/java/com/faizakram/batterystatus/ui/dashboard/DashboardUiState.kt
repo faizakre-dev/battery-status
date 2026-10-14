@@ -8,6 +8,8 @@ import com.faizakram.batterystatus.core.model.BatteryStatus
 import com.faizakram.batterystatus.core.model.HealthLevel
 import com.faizakram.batterystatus.core.model.HealthReason
 import com.faizakram.batterystatus.core.model.PlugType
+import com.faizakram.batterystatus.core.quirks.CurrentNormalizer
+import com.faizakram.batterystatus.core.quirks.DeviceQuirks
 import com.faizakram.batterystatus.core.sysfs.SysfsBatteryData
 import com.faizakram.batterystatus.domain.cycle.CycleEstimator
 import com.faizakram.batterystatus.domain.health.DesignCapacityResolver
@@ -38,6 +40,7 @@ fun BatterySnapshot.toDashboardUiState(
     estimates: BatteryEstimates,
     sysfs: SysfsBatteryData,
     smoothedRateUaPerMs: Double?,
+    quirks: DeviceQuirks,
 ): DashboardUiState {
     val assessment = BatteryHealthEvaluator.assess(this)
 
@@ -72,7 +75,9 @@ fun BatterySnapshot.toDashboardUiState(
         healthReasons = assessment.reasons,
         temperatureText = BatteryFormatters.temperature(temperatureCelsius),
         voltageText = BatteryFormatters.voltage(voltageMv),
-        currentText = BatteryFormatters.currentMilliamps(currentNowUa),
+        currentText = BatteryFormatters.signedCurrentMilliamps(
+            CurrentNormalizer.normalize(currentNowUa, status, quirks.maxPlausibleCurrentUa),
+        ),
         technology = technology,
         updatedAtMillis = timestampMillis,
         estimatedCycles = cycles,

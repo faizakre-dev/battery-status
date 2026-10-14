@@ -40,6 +40,21 @@ class BestEffortSysfsReaderTest {
     }
 
     @Test
+    fun `falls back to later directories per field`() {
+        val battery = temp.newFolder("battery")
+        val bms = temp.newFolder("bms")
+        File(battery, "cycle_count").writeText("-1\n")
+        File(bms, "cycle_count").writeText("204\n")
+        File(bms, "charge_full").writeText("3800000\n")
+
+        val data = BestEffortSysfsReader(listOf(battery, bms)).read()
+
+        assertEquals(204, data.cycleCount)
+        assertEquals(3_800_000, data.chargeFullUah)
+        assertNull(data.chargeFullDesignUah)
+    }
+
+    @Test
     fun `returns all nulls when the directory does not exist`() {
         val dir = File(temp.root, "does-not-exist")
 

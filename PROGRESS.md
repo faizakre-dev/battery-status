@@ -14,7 +14,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 | M4 | Estimations | ✅ | Cycle estimator, health %, time-to-full; sysfs best-effort reader |
 | M5 | History | ✅ | Charts (level/temperature), session list, retention/downsampling |
 | M6 | Polish | ✅ | Dark mode + dynamic color, full-charge/overheat alerts, a11y, strings, launcher icon |
-| M7 | Hardening | ⬜ | OEM quirks (Samsung, Xiaomi, Pixel, OnePlus), battery audit, Play review |
+| M7 | Hardening | ✅ | OEM quirks layer (per-brand sysfs paths + runtime current normalization), battery-use audit, Play review checklist |
 
 ## M1 — Project scaffold (complete)
 
@@ -105,7 +105,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 ### Notable decisions / gotchas
 - Temperature is a first-class health signal: a `GOOD` platform reading is downgraded to `ATTENTION`/`POOR` at the thresholds above, so overheating shows up even when the OEM never sets `BATTERY_HEALTH_OVERHEAT`.
 - `HealthLevel` ranking is GOOD < UNKNOWN < ATTENTION < POOR; each contributing signal can only *worsen* the verdict, never improve it.
-- Current is shown as a signed mA value (`CURRENT_NOW`); sign convention varies by OEM, so direction is conveyed by the status label rather than assumed.
+- Current is shown as a signed mA value (`CURRENT_NOW`); sign convention varies by OEM (see M7 for the runtime normalizer that reconciles it against the reported status).
 - Kept the M1 raw-value dump out of the dashboard — it belongs on a Details screen (M5/M6).
 
 ## M4 — Estimations (complete)
@@ -187,7 +187,47 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - **Charts stay theme-aware** (`primary` / `tertiary`) rather than a fixed orange, so they adapt to dark mode and dynamic color.
 - Manual validation on 2 physical devices (milestone DoD) is still pending; covered by unit tests + lint only so far.
 
+## M7 — Hardening (complete)
+
+### Deliverables
+- [x] `core/quirks/DeviceQuirks.kt` — per-manufacturer table resolved from `Build.MANUFACTURER` (Samsung→battery+bms, Xiaomi→battery+bms+maxfg, OnePlus→battery+bms, Google→battery+bms; unknown→default), carrying the sysfs search paths and a `current_now` plausibility bound
+- [x] `core/quirks/CurrentNormalizer.kt` — pure runtime normalization of `CURRENT_NOW`: canonical sign (positive = charging) reconciled against the reported status, plus rejection of implausibly large magnitudes
+- [x] `BatteryFormatters.signedCurrentMilliamps` — always-signed output (`+712 mA` / `-412 mA`) used by the dashboard
+- [x] `BestEffortSysfsReader` — probes a list of directories in order and takes the first readable value per field (OEM path differences); `File` constructor retained for tests
+- [x] `AppModule` — provides `DeviceQuirks` and builds the sysfs reader from the brand's search paths; `DashboardViewModel`/`toDashboardUiState` now apply normalization
+- [x] `BatteryStatusApp` — scheduling guarded with `runCatching`
+- [x] Manifest — dropped the unused `WAKE_LOCK` permission
+- [x] Tests: `CurrentNormalizerTest` (10), `DeviceQuirksTest` (4), sysfs multi-dir fallback (+1), signed-current formatter (+1)
+
+### Verification
+- `./gradlew lint test assembleDebug` → **BUILD SUCCESSFUL**
+- 111 unit tests, 0 failures
+- `lint` clean (no errors)
+
+### Battery-use audit
+- **Wakeups/energy:** the FGS only runs while plugged in (broadcast-driven, resets on unplug); the background worker is at the platform 15-min floor with no user-visible cost. No partial wakelocks are held by app code — the unused `WAKE_LOCK` permission was removed.
+- **I/O:** Room writes are de-duplicated by `EstimatesReducer` (only persisted when a field besides `lastUpdatedMillis` changes); retention runs once per worker pass.
+- **Network / location / sensors:** none. The app performs no network requests and requests no location, camera, contacts, or advertising permissions.
+- **FGS budget:** `dataSync` type is subject to Android 15's 6 h/day cap; typical charge sessions are far below it, and the service stops itself the moment the device unplugs.
+
+### Play pre-launch review checklist
+- [x] Permissions justified and minimal: `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_DATA_SYNC` (charge tracking), `POST_NOTIFICATIONS` (alerts), `RECEIVE_BOOT_COMPLETED` (resume after reboot). No sensitive/dangerous permission beyond notifications (requested at runtime).
+- [x] `targetSdk 36` satisfies the current Play target-SDK requirement.
+- [x] Data safety: all readings stay on-device; nothing is collected or shared.
+- [x] Adaptive icon (foreground/monochrome/background) present; label = `Battery Health`.
+- [ ] **Signing:** the release pipeline currently ships an *unsigned debug* APK for direct install only. A release keystore + signed AAB is required before uploading to Play.
+- [ ] **Migrations:** `fallbackToDestructiveMigration(dropAllTables = true)` is still in place; add real Room migrations before shipping a build that must preserve user history.
+
+### Notable decisions / gotchas
+- **Sign is reconciled at runtime, not from a static per-brand table.** The Android contract only guarantees the *magnitude* of `CURRENT_NOW`, so relying on a hard-coded "Samsung is negative" rule would be brittle. `CurrentNormalizer` instead flips the sign only when it contradicts the reported status (charging/full ⇒ positive, discharging ⇒ negative), which is self-correcting across OEMs and ROM updates.
+- **Direction is not flipped when it's ambiguous** (`NOT_CHARGING`/`UNKNOWN`): the raw sign is passed through rather than guessed.
+- **Sanity clamp, not unit conversion.** `abs(raw) > 10 A` is treated as garbage (`null`). Deliberately no µA↔mA inference: the idle-current ranges overlap between units, so a heuristic could corrupt good readings.
+- **The per-manufacturer table feeds two things** — sysfs search paths (the OEM-layout fix) and the plausibility bound — keeping the quirks layer genuinely used rather than speculative dead code.
+- **Sysfs fallback is per-field**, so a device that exposes `cycle_count` under `bms` but `charge_full` under `battery` still reads both.
+- **Battery-audit and Play-review items are process/manual**; the only code-affecting outcomes were removing `WAKE_LOCK` and guarding scheduling. Device validation on the four target OEMs remains manual (not automatable here).
+
 ## Change log
+- **M7 hardening** — OEM quirks layer (per-brand sysfs paths, runtime signed/plausibility current normalization), sysfs multi-dir fallback, unused-permission removal, battery-use audit + Play review checklist.
 - **M6 polish** — dark mode + dynamic color, alerts (full charge / overheat), accessibility semantics, string externalization, runtime notification permission.
 - **M5 history + launcher icon** — history screen, dependency-free Canvas charts, session list, bottom-nav root, hourly retention/downsampling (Room v3), adaptive launcher icon, tests.
 - **M4 estimations** — sysfs reader, cycle/health/time estimators, `battery_estimates` table (Room v2), dashboard estimates, tests.

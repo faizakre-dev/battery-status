@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.faizakram.batterystatus.core.battery.BatteryInfoSource
 import com.faizakram.batterystatus.core.model.BatteryEstimates
 import com.faizakram.batterystatus.core.model.isCharging
+import com.faizakram.batterystatus.core.quirks.DeviceQuirks
 import com.faizakram.batterystatus.core.sysfs.SysfsBatteryData
 import com.faizakram.batterystatus.core.sysfs.SysfsBatteryReader
 import com.faizakram.batterystatus.data.repo.BatteryRepository
@@ -26,6 +27,7 @@ class DashboardViewModel @Inject constructor(
     batteryInfoSource: BatteryInfoSource,
     repository: BatteryRepository,
     sysfsBatteryReader: SysfsBatteryReader,
+    private val deviceQuirks: DeviceQuirks,
 ) : ViewModel() {
 
     private val timeEstimator = TimeToFullEstimator()
@@ -49,7 +51,7 @@ class DashboardViewModel @Inject constructor(
                 isCharging = snapshot.isCharging,
             ),
         )
-        snapshot.toDashboardUiState(estimates, sysfs, rate)
+        snapshot.toDashboardUiState(estimates, sysfs, rate, deviceQuirks)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),

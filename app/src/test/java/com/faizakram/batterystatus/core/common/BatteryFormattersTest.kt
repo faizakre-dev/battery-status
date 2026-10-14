@@ -21,6 +21,14 @@ class BatteryFormattersTest {
     }
 
     @Test
+    fun `formats current with an explicit sign`() {
+        assertEquals("+712 mA", BatteryFormatters.signedCurrentMilliamps(712_000))
+        assertEquals("-412 mA", BatteryFormatters.signedCurrentMilliamps(-412_000))
+        assertEquals("+0 mA", BatteryFormatters.signedCurrentMilliamps(0))
+        assertNull(BatteryFormatters.signedCurrentMilliamps(null))
+    }
+
+    @Test
     fun `formats temperature in celsius with one decimal`() {
         assertEquals("31.4 °C", BatteryFormatters.temperature(31.4f))
         assertEquals("-2.0 °C", BatteryFormatters.temperature(-2f))

@@ -18,6 +18,10 @@ object BatteryFormatters {
     fun currentMilliamps(currentUa: Int?): String? =
         currentUa?.let { String.format(Locale.US, "%.0f mA", it / 1000f) }
 
+    /** Always-signed current, e.g. `+712 mA` while charging, `-412 mA` while discharging. */
+    fun signedCurrentMilliamps(currentUa: Int?): String? =
+        currentUa?.let { String.format(Locale.US, "%+.0f mA", it / 1000f) }
+
     fun temperature(celsius: Float?): String? =
         celsius?.let { String.format(Locale.US, "%.1f °C", it) }
 

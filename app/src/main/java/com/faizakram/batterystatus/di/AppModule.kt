@@ -1,8 +1,10 @@
 package com.faizakram.batterystatus.di
 
 import android.content.Context
+import android.os.Build
 import com.faizakram.batterystatus.core.battery.AndroidBatteryInfoSource
 import com.faizakram.batterystatus.core.battery.BatteryInfoSource
+import com.faizakram.batterystatus.core.quirks.DeviceQuirks
 import com.faizakram.batterystatus.core.sysfs.BestEffortSysfsReader
 import com.faizakram.batterystatus.core.sysfs.SysfsBatteryReader
 import com.faizakram.batterystatus.data.repo.BatteryRepository
@@ -12,6 +14,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import java.io.File
 import javax.inject.Singleton
 
 @Module
@@ -26,7 +29,12 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideSysfsBatteryReader(): SysfsBatteryReader = BestEffortSysfsReader()
+    fun provideDeviceQuirks(): DeviceQuirks = DeviceQuirks.forManufacturer(Build.MANUFACTURER)
+
+    @Provides
+    @Singleton
+    fun provideSysfsBatteryReader(quirks: DeviceQuirks): SysfsBatteryReader =
+        BestEffortSysfsReader(quirks.sysfsSearchDirs.map(::File))
 
     @Provides
     @Singleton

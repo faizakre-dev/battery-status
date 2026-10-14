@@ -25,7 +25,7 @@ class BatteryStatusApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        SnapshotScheduler.schedule(this)
+        runCatching { SnapshotScheduler.schedule(this) }
 
         if (batteryInfoSource.current().isCharging) {
             runCatching {
