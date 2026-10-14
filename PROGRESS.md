@@ -12,8 +12,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 | M2 | Data capture | ✅ | Room schema, snapshot worker, foreground service session tracker |
 | M3 | Dashboard MVP | ✅ | Live stats, health mapping, real-time UI via Flow |
 | M4 | Estimations | ✅ | Cycle estimator, health %, time-to-full; sysfs best-effort reader |
-| M5 | History | ⬜ | Charts, session list, retention/downsampling |
-| M6 | Polish | ⬜ | Alerts, dark mode, accessibility, icons, strings |
+| M5 | History | ✅ | Charts (level/temperature), session list, retention/downsampling |
+| M6 | Polish | 🟡 | Alerts, dark mode, accessibility, icons, strings (launcher icon done) |
 | M7 | Hardening | ⬜ | OEM quirks (Samsung, Xiaomi, Pixel, OnePlus), battery audit, Play review |
 
 ## M1 — Project scaffold (complete)
@@ -134,7 +134,37 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - `EstimatesReducer` is pure; service/worker only persist when a field other than `lastUpdatedMillis` changes (avoids a write per broadcast).
 - sysfs reads are wrapped in `try/catch` for `IOException` and `SecurityException`; SELinux denials simply yield `null`.
 
+## M5 — History (complete) + launcher icon
+
+### Deliverables
+- [x] `ui/AppRoot.kt` — bottom-navigation root (Dashboard | History); `MainActivity` now hosts `AppRoot`
+- [x] `DashboardScreen` refactored to content-only (takes a `Modifier`; no internal `Scaffold`)
+- [x] `ui/history/ChartModels.kt` — pure snapshot → `ChartSeries` transforms (fixed 0–100 level range; auto-scaled temperature; downsample to ≤180 points by bucket averaging)
+- [x] `ui/history/LineChart.kt` — dependency-free Compose `Canvas` line chart (gridlines + area fill + line; single-point and empty handled)
+- [x] `ui/history/HistoryUiState.kt` — `HistoryRange` (24h/7d) + `SessionUi` + pure `from(...)` mapper
+- [x] `ui/history/HistoryViewModel.kt` — `range.flatMapLatest` over snapshots + sessions, combined into a `StateFlow`
+- [x] `ui/history/HistoryScreen.kt` — range chips, level + temperature chart cards (min–max captions), session list, empty states
+- [x] `domain/retention/SnapshotRetention.kt` — pure policy: 7-day raw retention, 1-hour buckets, avg/min/max level + temperature
+- [x] `domain/retention/SnapshotRetentionUseCase.kt` — aggregate-then-prune, invoked from `PeriodicSnapshotWorker`
+- [x] Room v3: `battery_snapshots_hourly` table + `HourlySnapshotDao`; repository `snapshotsBefore` / `observeHourlySnapshotsSince` / `saveHourlySnapshots` / `hourlySnapshotCount`; schema `3.json` exported
+- [x] Adaptive launcher icon: `mipmap-anydpi-v26/ic_launcher(.xml|_round.xml)` + vector foreground/monochrome + `ic_launcher_background`; `android:icon`/`android:roundIcon` added to the manifest
+- [x] Tests: `SnapshotRetentionTest` (6), `ChartModelsTest` (9), `HistoryUiStateTest` (4), `BatteryDatabaseTest` +3 (hourly round-trip/upsert, `getBefore`)
+
+### Verification
+- `./gradlew lint test assembleDebug` → **BUILD SUCCESSFUL**
+- 87 unit tests, 0 failures
+- `aapt2 dump badging` → `application: label='Battery Health' icon='res/mipmap-anydpi-v26/ic_launcher.xml'`
+
+### Notable decisions / gotchas
+- **Charts are Canvas-based, not Vico.** PLAN named Vico, but our Compose BOM (2026.09.00) is far newer than the latest Vico (2.1.3); a hand-rolled `Canvas` chart removes that compatibility risk, shrinks the APK, and is unit-testable via the pure `ChartModels` layer.
+- **App name was never missing** — `android:label="@string/app_name"` was already set; the real gap was the absent icon (launchers showed a blank/generic tile). Fixed with an adaptive icon.
+- **Downsampling loses the very first timestamp:** each bucket is represented by its *last* sample (newest) so the right edge of the chart is exact; the left edge lands one bucket in. Acceptable for 180-point smoothing.
+- **Retention is idempotent and best-effort:** it reads stale raw rows, writes hourly buckets (`REPLACE` by bucket start), then deletes the raw rows. Buckets are keyed by hour start so re-runs overwrite rather than duplicate.
+- **History range boundaries are captured when the range changes** (not on a timer), so the "since" window updates on tab/range interaction rather than continuously.
+- Launcher icon uses an adaptive vector (minSdk 26 ⇒ `mipmap-anydpi-v26` is universally resolvable; no density PNGs needed). To swap in custom artwork: Android Studio → `res` → New → Image Asset → Launcher Icons, then replace the foreground layer.
+
 ## Change log
+- **M5 history + launcher icon** — history screen, dependency-free Canvas charts, session list, bottom-nav root, hourly retention/downsampling (Room v3), adaptive launcher icon, tests.
 - **M4 estimations** — sysfs reader, cycle/health/time estimators, `battery_estimates` table (Room v2), dashboard estimates, tests.
 - **M3 dashboard MVP** — health evaluator + formatters, `DashboardUiState`, ring/badge/stats UI, tests.
 - **M2 data capture** — Room schema, repository, session tracker, FGS + worker, tests.

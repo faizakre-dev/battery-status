@@ -3,9 +3,11 @@ package com.faizakram.batterystatus.data.local
 import com.faizakram.batterystatus.core.model.BatteryEstimates
 import com.faizakram.batterystatus.core.model.BatterySnapshot
 import com.faizakram.batterystatus.core.model.ChargeSession
+import com.faizakram.batterystatus.core.model.HourlySnapshot
 import com.faizakram.batterystatus.data.local.entity.BatteryEstimatesEntity
 import com.faizakram.batterystatus.data.local.entity.BatterySnapshotEntity
 import com.faizakram.batterystatus.data.local.entity.ChargeSessionEntity
+import com.faizakram.batterystatus.data.local.entity.HourlySnapshotEntity
 import kotlin.math.roundToInt
 
 private const val MICRO_TO_MILLI = 1_000_000L
@@ -87,4 +89,26 @@ fun BatteryEstimatesEntity.toDomain(): BatteryEstimates = BatteryEstimates(
     accumulatedCycleFraction = accumulatedCycleFraction,
     sysfsCycleCount = sysfsCycleCount,
     lastUpdatedMillis = lastUpdatedMillis,
+)
+
+fun HourlySnapshot.toEntity(): HourlySnapshotEntity = HourlySnapshotEntity(
+    bucketStartMillis = bucketStartMillis,
+    sampleCount = sampleCount,
+    avgLevelPercent = avgLevelPercent,
+    minLevelPercent = minLevelPercent,
+    maxLevelPercent = maxLevelPercent,
+    avgTemperatureDeciCelsius = avgTemperatureCelsius?.let { (it * 10).roundToInt().toFloat() },
+    minTemperatureDeciCelsius = minTemperatureCelsius?.let { (it * 10).roundToInt() },
+    maxTemperatureDeciCelsius = maxTemperatureCelsius?.let { (it * 10).roundToInt() },
+)
+
+fun HourlySnapshotEntity.toDomain(): HourlySnapshot = HourlySnapshot(
+    bucketStartMillis = bucketStartMillis,
+    sampleCount = sampleCount,
+    avgLevelPercent = avgLevelPercent,
+    minLevelPercent = minLevelPercent,
+    maxLevelPercent = maxLevelPercent,
+    avgTemperatureCelsius = avgTemperatureDeciCelsius?.let { it / 10f },
+    minTemperatureCelsius = minTemperatureDeciCelsius?.let { it / 10f },
+    maxTemperatureCelsius = maxTemperatureDeciCelsius?.let { it / 10f },
 )

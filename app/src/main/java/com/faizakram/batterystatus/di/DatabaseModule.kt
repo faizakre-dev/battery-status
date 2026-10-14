@@ -6,6 +6,7 @@ import com.faizakram.batterystatus.data.local.BatteryDatabase
 import com.faizakram.batterystatus.data.local.dao.BatteryEstimatesDao
 import com.faizakram.batterystatus.data.local.dao.BatterySnapshotDao
 import com.faizakram.batterystatus.data.local.dao.ChargeSessionDao
+import com.faizakram.batterystatus.data.local.dao.HourlySnapshotDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -35,4 +36,8 @@ object DatabaseModule {
     @Provides
     fun provideEstimatesDao(database: BatteryDatabase): BatteryEstimatesDao =
         database.batteryEstimatesDao()
+
+    @Provides
+    fun provideHourlySnapshotDao(database: BatteryDatabase): HourlySnapshotDao =
+        database.hourlySnapshotDao()
 }

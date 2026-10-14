@@ -8,10 +8,12 @@ import com.faizakram.batterystatus.core.model.BatteryHealth
 import com.faizakram.batterystatus.core.model.BatterySnapshot
 import com.faizakram.batterystatus.core.model.BatteryStatus
 import com.faizakram.batterystatus.core.model.ChargeSession
+import com.faizakram.batterystatus.core.model.HourlySnapshot
 import com.faizakram.batterystatus.core.model.PlugType
 import com.faizakram.batterystatus.data.local.dao.BatteryEstimatesDao
 import com.faizakram.batterystatus.data.local.dao.BatterySnapshotDao
 import com.faizakram.batterystatus.data.local.dao.ChargeSessionDao
+import com.faizakram.batterystatus.data.local.dao.HourlySnapshotDao
 import com.faizakram.batterystatus.data.local.entity.BatteryEstimatesEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -33,6 +35,7 @@ class BatteryDatabaseTest {
     private lateinit var snapshotDao: BatterySnapshotDao
     private lateinit var sessionDao: ChargeSessionDao
     private lateinit var estimatesDao: BatteryEstimatesDao
+    private lateinit var hourlyDao: HourlySnapshotDao
 
     @Before
     fun setUp() {
@@ -43,6 +46,7 @@ class BatteryDatabaseTest {
         snapshotDao = database.batterySnapshotDao()
         sessionDao = database.chargeSessionDao()
         estimatesDao = database.batteryEstimatesDao()
+        hourlyDao = database.hourlySnapshotDao()
     }
 
     @After
@@ -161,6 +165,65 @@ class BatteryDatabaseTest {
     fun `estimates are absent before first write`() = runBlocking {
         assertNull(estimatesDao.get(BatteryEstimatesEntity.SINGLETON_ID))
     }
+
+    @Test
+    fun `getBefore returns only older snapshots in ascending order`() = runBlocking {
+        snapshotDao.insert(snapshot(ts = 1_000, percent = 10).toEntity())
+        snapshotDao.insert(snapshot(ts = 3_000, percent = 20).toEntity())
+        snapshotDao.insert(snapshot(ts = 9_000, percent = 30).toEntity())
+
+        val before = snapshotDao.getBefore(5_000)
+
+        assertEquals(listOf(1_000L, 3_000L), before.map { it.timestampMillis })
+    }
+
+    @Test
+    fun `hourly snapshots round-trip and filter by bucket start`() = runBlocking {
+        hourlyDao.upsertAll(
+            listOf(
+                hourlyBucket(bucket = 1_000, avgLevel = 42.5f, minLevel = 40, maxLevel = 45),
+                hourlyBucket(bucket = 2_000, avgLevel = 60f, minLevel = 58, maxLevel = 62),
+            ),
+        )
+
+        val since = hourlyDao.observeSince(2_000).first()
+
+        assertEquals(2, hourlyDao.count())
+        assertEquals(1, since.size)
+        val stored = since.first()
+        assertEquals(2_000L, stored.bucketStartMillis)
+        assertEquals(60f, stored.avgLevelPercent!!, 1e-6f)
+        assertEquals(58, stored.minLevelPercent)
+        assertEquals(62, stored.maxLevelPercent)
+    }
+
+    @Test
+    fun `hourly upsert replaces the row for the same bucket`() = runBlocking {
+        hourlyDao.upsertAll(listOf(hourlyBucket(bucket = 1_000, avgLevel = 42.5f, minLevel = 40, maxLevel = 45)))
+        hourlyDao.upsertAll(listOf(hourlyBucket(bucket = 1_000, avgLevel = 50f, minLevel = 48, maxLevel = 51)))
+
+        val stored = hourlyDao.observeSince(0).first()
+
+        assertEquals(1, stored.size)
+        assertEquals(50f, stored.first().avgLevelPercent!!, 1e-6f)
+    }
+
+    private fun hourlyBucket(
+        bucket: Long,
+        avgLevel: Float,
+        minLevel: Int,
+        maxLevel: Int,
+    ): com.faizakram.batterystatus.data.local.entity.HourlySnapshotEntity =
+        HourlySnapshot(
+            bucketStartMillis = bucket,
+            sampleCount = 3,
+            avgLevelPercent = avgLevel,
+            minLevelPercent = minLevel,
+            maxLevelPercent = maxLevel,
+            avgTemperatureCelsius = 30.5f,
+            minTemperatureCelsius = 29.0f,
+            maxTemperatureCelsius = 32.0f,
+        ).toEntity()
 
     private fun snapshot(ts: Long, percent: Int): BatterySnapshot = BatterySnapshot(
         timestampMillis = ts,

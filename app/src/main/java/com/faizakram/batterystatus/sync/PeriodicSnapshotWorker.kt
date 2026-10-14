@@ -11,6 +11,7 @@ import com.faizakram.batterystatus.core.sysfs.SysfsBatteryReader
 import com.faizakram.batterystatus.data.repo.BatteryRepository
 import com.faizakram.batterystatus.domain.estimates.EstimateUpdate
 import com.faizakram.batterystatus.domain.estimates.EstimatesReducer
+import com.faizakram.batterystatus.domain.retention.SnapshotRetentionUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -25,12 +26,14 @@ class PeriodicSnapshotWorker @AssistedInject constructor(
     private val batteryInfoSource: BatteryInfoSource,
     private val repository: BatteryRepository,
     private val sysfsBatteryReader: SysfsBatteryReader,
+    private val snapshotRetention: SnapshotRetentionUseCase,
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result = try {
         val snapshot = batteryInfoSource.current()
         repository.recordSnapshot(snapshot)
         updateEstimates(snapshot)
+        snapshotRetention.run(snapshot.timestampMillis)
         Result.success()
     } catch (e: Exception) {
         Result.retry()

@@ -15,7 +15,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,59 +46,57 @@ private val NeutralGray = Color(0xFF9E9E9E)
 
 @Composable
 fun DashboardScreen(
+    modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    DashboardContent(uiState)
+    DashboardContent(uiState, modifier)
 }
 
 @Composable
-private fun DashboardContent(state: DashboardUiState?) {
-    Scaffold { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
+private fun DashboardContent(state: DashboardUiState?, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Text(
+            text = "Battery",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (state == null) {
             Text(
-                text = "Battery",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.fillMaxWidth(),
+                text = "Reading battery status…",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            return@Column
+        }
 
-            if (state == null) {
-                Text(
-                    text = "Reading battery status…",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                return@Column
-            }
+        BatteryLevelRing(state)
+        HealthBadge(state)
+        EstimatesRow(state)
+        LiveStats(state)
 
-            BatteryLevelRing(state)
-            HealthBadge(state)
-            EstimatesRow(state)
-            LiveStats(state)
-
-            state.technology?.let { technology ->
-                Text(
-                    text = "Technology: $technology",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
+        state.technology?.let { technology ->
             Text(
-                text = "Updated ${formatTime(state.updatedAtMillis)}",
+                text = "Technology: $technology",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+
+        Text(
+            text = "Updated ${formatTime(state.updatedAtMillis)}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

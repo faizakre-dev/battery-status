@@ -60,3 +60,20 @@ data class BatteryEstimatesEntity(
         const val SINGLETON_ID = 1
     }
 }
+
+/**
+ * Hourly aggregate of [BatterySnapshotEntity] rows older than the raw retention
+ * window. One row per hour bucket, keyed by the bucket's start timestamp.
+ */
+@Entity(tableName = "battery_snapshots_hourly")
+data class HourlySnapshotEntity(
+    @PrimaryKey
+    val bucketStartMillis: Long,
+    val sampleCount: Int,
+    val avgLevelPercent: Float?,
+    val minLevelPercent: Int?,
+    val maxLevelPercent: Int?,
+    val avgTemperatureDeciCelsius: Float?,
+    val minTemperatureDeciCelsius: Int?,
+    val maxTemperatureDeciCelsius: Int?,
+)
