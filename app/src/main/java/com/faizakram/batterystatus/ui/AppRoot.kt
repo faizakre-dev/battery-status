@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -29,10 +30,12 @@ import androidx.core.content.ContextCompat
 import com.faizakram.batterystatus.R
 import com.faizakram.batterystatus.ui.dashboard.DashboardScreen
 import com.faizakram.batterystatus.ui.history.HistoryScreen
+import com.faizakram.batterystatus.ui.settings.SettingsScreen
 
 private enum class Tab(@StringRes val labelRes: Int, val icon: ImageVector) {
     DASHBOARD(R.string.nav_dashboard, Icons.Filled.Home),
     HISTORY(R.string.nav_history, Icons.Filled.List),
+    SETTINGS(R.string.nav_settings, Icons.Filled.Settings),
 }
 
 @Composable
@@ -60,6 +63,7 @@ fun AppRoot() {
         when (tabs[selected]) {
             Tab.DASHBOARD -> DashboardScreen(modifier = contentModifier)
             Tab.HISTORY -> HistoryScreen(modifier = contentModifier)
+            Tab.SETTINGS -> SettingsScreen(modifier = contentModifier)
         }
     }
 }

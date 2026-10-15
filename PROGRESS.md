@@ -226,7 +226,32 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - **Sysfs fallback is per-field**, so a device that exposes `cycle_count` under `bms` but `charge_full` under `battery` still reads both.
 - **Battery-audit and Play-review items are process/manual**; the only code-affecting outcomes were removing `WAKE_LOCK` and guarding scheduling. Device validation on the four target OEMs remains manual (not automatable here).
 
+## M8 — In-app updater (complete)
+
+### Deliverables
+- [x] `core/update/UpdateVersion.kt` — pure tag normalization (`v0.3.0` → `0.3.0`) and segment-wise numeric comparison (missing segments = 0, `-pre`/`+build` suffixes ignored, equal/downgraded releases never offered)
+- [x] `core/update/UpdateModels.kt` — `ReleaseInfo`, `UpdateError` (NETWORK/NOT_FOUND/PARSE/NO_APK/STORAGE), `UpdateState` (Idle/Checking/UpToDate/Available/Downloading/ReadyToInstall/Failed)
+- [x] `core/update/UpdateManager.kt` — `@Singleton` updater: queries `api.github.com/repos/faizakre-dev/battery-status/releases/latest`, picks the `app-debug.apk` asset, streams it to `cacheDir/apk/update-<ver>.apk` with percent progress, launches the system installer via `FileProvider` + `ACTION_VIEW`, and gates on `canRequestPackageInstalls()` (deep-links to `ACTION_MANAGE_UNKNOWN_APP_SOURCES` when the user hasn't granted it)
+- [x] Manifest — added `INTERNET` + `REQUEST_INSTALL_PACKAGES`, registered `androidx.core.content.FileProvider` (`${applicationId}.fileprovider`) with new `res/xml/file_paths.xml` (cache path `apk/`)
+- [x] `ui/settings/` — new Settings tab in `AppRoot`: About card (installed version) + Updates card with auto-check on first open, release notes, download progress, install button, permission hint and per-error messages
+- [x] Tests: `UpdateVersionTest` (6)
+
+### Verification
+- `./gradlew lint test assembleDebug` → **BUILD SUCCESSFUL**
+- 117 unit tests, 0 failures
+- `lint` clean — no new findings; remaining warnings (register-receiver flag, targetSdk, mipmap v26 folder, etc.) pre-date M8
+
+### Notable decisions / gotchas
+- **No new dependencies.** `HttpURLConnection` + the platform's built-in `org.json` cover the GitHub REST call, so the version catalog is untouched.
+- **Update state lives in the singleton `UpdateManager`, not the ViewModel**, so downloads keep progressing when the user switches tabs. Because the file is named per version (`update-0.4.0.apk`), a completed download is recognized as `ReadyToInstall` even after process death.
+- **Auto-check runs only from `Idle`**, so tab switches don't burn GitHub's unauthenticated rate limit (60 req/h/IP); the "Check for updates" button always re-queries.
+- **Downloads are atomic**: bytes go to a `.part` file that is renamed on success; stale partials are removed before each attempt, and failures map to `UpdateError` for localized messages.
+- **Install permission is per-app on Android 8+**: the Install button first checks `canRequestPackageInstalls()`, opens the system toggle when needed, and asks the user to tap Install again on return (hint shown in the UI).
+- **Signature caveat still applies**: releases ship an ephemeral debug key, so an upgrade over a differently-signed build fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` — in-app updating removes the uninstall step only for consistently-signed builds.
+- **Supersedes M7's audit line** "app performs no network requests": the app now performs one optional HTTPS request when the user opens Settings → Updates (or taps the button); battery readings still never leave the device.
+
 ## Change log
+- **M8 in-app updater** — GitHub-release update detection, APK download with progress, `FileProvider` install flow, Settings tab, version-comparison tests.
 - **M7 hardening** — OEM quirks layer (per-brand sysfs paths, runtime signed/plausibility current normalization), sysfs multi-dir fallback, unused-permission removal, battery-use audit + Play review checklist.
 - **M6 polish** — dark mode + dynamic color, alerts (full charge / overheat), accessibility semantics, string externalization, runtime notification permission.
 - **M5 history + launcher icon** — history screen, dependency-free Canvas charts, session list, bottom-nav root, hourly retention/downsampling (Room v3), adaptive launcher icon, tests.

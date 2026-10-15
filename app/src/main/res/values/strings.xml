@@ -4,6 +4,7 @@
     <!-- Navigation -->
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_history">History</string>
+    <string name="nav_settings">Settings</string>
 
     <!-- Dashboard -->
     <string name="dashboard_title">Battery</string>
@@ -81,4 +82,29 @@
     <string name="notification_channel_tracking_desc">Shown while charging data is being recorded</string>
     <string name="notification_tracking_title">Tracking charging session</string>
     <string name="notification_tracking_text">Battery Health is recording charge data</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+
+    <!-- Updates -->
+    <string name="update_about_title">About</string>
+    <string name="update_version_label">Installed version</string>
+    <string name="update_title">Updates</string>
+    <string name="update_idle">Checking GitHub releases for a new version…</string>
+    <string name="update_checking">Checking for updates…</string>
+    <string name="update_up_to_date">You\'re up to date. Version %1$s is the latest release.</string>
+    <string name="update_available">New version %1$s is available.</string>
+    <string name="update_check">Check for updates</string>
+    <string name="update_download">Download update</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_downloading_unknown">Downloading…</string>
+    <string name="update_install">Install update</string>
+    <string name="update_ready">Version %1$s has been downloaded and is ready to install.</string>
+    <string name="update_notes">What\'s new in %1$s</string>
+    <string name="update_permission_needed">Allow installing apps from Battery Health in Settings, then tap Install again.</string>
+    <string name="update_error_network">Couldn\'t reach GitHub. Check your connection and try again.</string>
+    <string name="update_error_not_found">No release is available yet.</string>
+    <string name="update_error_parse">Couldn\'t read the release info. Try again later.</string>
+    <string name="update_error_apk">The latest release doesn\'t include an APK.</string>
+    <string name="update_error_storage">Not enough space to download the update.</string>
 </resources>

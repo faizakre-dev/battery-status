@@ -1,6 +1,6 @@
 # Battery Health
 
-A lightweight, **fully offline** Android app that shows your device's battery health, live charge/discharge stats, estimated charge cycles, temperature, voltage, and historical trends — using only public Android APIs (no root).
+A lightweight Android app that shows your device's battery health, live charge/discharge stats, estimated charge cycles, temperature, voltage, and historical trends — using only public Android APIs (no root).
 
 > Pre-release / testing build. See [Install & test](#-install--test) below.
 
@@ -24,6 +24,7 @@ A lightweight, **fully offline** Android app that shows your device's battery he
 - Material 3 with **light/dark themes** and **dynamic color** (Android 12+)
 - **Alerts**: full-charge and overheat notifications (with hysteresis to avoid flapping)
 - **Accessibility**: merged/described semantics for screen readers
+- **In-app updates**: checks GitHub releases for a new version, downloads it, and installs it over the current app — no uninstall needed
 - Adaptive launcher icon
 
 ### Estimation, done honestly
@@ -33,7 +34,7 @@ Android does not expose design capacity or cycle count through public APIs, and 
 2. Falls back to **clearly-labelled estimates** built from the charge sessions it logs over time.
 3. Normalizes OEM quirks at runtime — e.g. `current_now` **sign is reconciled against the reported charging status**, and implausible magnitudes are discarded.
 
-**No network, no tracking, no root.** Everything stays on your device.
+**No tracking, no root.** The only network traffic is an optional update check against GitHub releases (Settings → Updates); readings and history never leave your device.
 
 ---
 
@@ -62,7 +63,7 @@ When you tap the APK, Android will ask you to allow **"Install unknown apps"** f
 
 Tap the downloaded `app-debug.apk` → **Install** → open **Battery Health**.
 
-> **Upgrading from an earlier build?** Uninstall the previous version first. Releases are signed with an ephemeral debug key, so installing over a differently-signed build can fail with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. Your logged data is local to the app and will be cleared on uninstall.
+> **Upgrading from an earlier build?** Open **Settings → Updates** — it detects the latest GitHub release, downloads it, and installs over the current version (no uninstall needed). Releases are signed with an ephemeral debug key, so a build signed with a different key will be rejected by Android with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`; in that case uninstalling first clears your logged data.
 
 ### Alternative: install with adb
 
@@ -182,6 +183,7 @@ Tagging a commit as `v*` triggers a GitHub Actions workflow that runs tests and 
 | M5 History + launcher icon | ✅ |
 | M6 Polish (dark mode, alerts, a11y) | ✅ |
 | M7 Hardening (OEM quirks, audit) | ✅ |
+| M8 In-app updater (GitHub releases) | ✅ |
 
 Planned for v2: home-screen widget (Glance), CSV export, and configurable alert thresholds.
 
