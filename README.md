@@ -51,7 +51,7 @@ The easiest way is to install the latest prebuilt APK.
 
 ### 1. Download the APK
 
-**[⬇ Download latest release (v0.4.0)](https://github.com/faizakre-dev/battery-status/releases/latest/download/app-debug.apk)**
+**[⬇ Download latest release (v0.5.0)](https://github.com/faizakre-dev/battery-status/releases/latest/download/app-debug.apk)**
 
 Or open the [Releases page](https://github.com/faizakre-dev/battery-status/releases) and grab `app-debug.apk` from the newest release.
 
