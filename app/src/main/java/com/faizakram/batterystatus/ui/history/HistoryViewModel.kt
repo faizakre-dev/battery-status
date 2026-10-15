@@ -25,12 +25,12 @@ class HistoryViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val snapshots = range.flatMapLatest { window ->
-        repository.observeSnapshotsSince(System.currentTimeMillis() - window.durationMillis)
+        repository.observeSnapshotsSince(window.sinceMillis(System.currentTimeMillis()))
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val sessions = range.flatMapLatest { window ->
-        val since = System.currentTimeMillis() - window.durationMillis
+        val since = window.sinceMillis(System.currentTimeMillis())
         repository.observeSessions().map { list -> list.filter { it.startMillis >= since } }
     }
 

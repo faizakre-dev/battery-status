@@ -7,9 +7,18 @@ import com.faizakram.batterystatus.core.model.BatterySnapshot
 import com.faizakram.batterystatus.core.model.ChargeSession
 
 /** The selectable look-back windows for the history screen. */
-enum class HistoryRange(@StringRes val labelRes: Int, val durationMillis: Long) {
-    DAY(R.string.history_range_day, 24L * 60 * 60 * 1000),
-    WEEK(R.string.history_range_week, 7L * 24 * 60 * 60 * 1000),
+enum class HistoryRange(@StringRes val labelRes: Int) {
+    DAY(R.string.history_range_day),
+    WEEK(R.string.history_range_week),
+    ALL(R.string.history_range_all),
+    ;
+
+    /** Earliest timestamp included by this window, given the current time. */
+    fun sinceMillis(nowMillis: Long): Long = when (this) {
+        DAY -> nowMillis - 24L * 60 * 60 * 1000
+        WEEK -> nowMillis - 7L * 24 * 60 * 60 * 1000
+        ALL -> 0L
+    }
 }
 
 /** Presentation-ready charge session row. */

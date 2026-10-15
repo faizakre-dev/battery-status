@@ -8,6 +8,7 @@ import com.faizakram.batterystatus.data.local.entity.BatteryEstimatesEntity
 import com.faizakram.batterystatus.data.local.entity.BatterySnapshotEntity
 import com.faizakram.batterystatus.data.local.entity.ChargeSessionEntity
 import com.faizakram.batterystatus.data.local.entity.HourlySnapshotEntity
+import com.faizakram.batterystatus.data.local.entity.OpenChargeSessionEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -80,6 +81,20 @@ interface ChargeSessionDao {
 
     @Query("SELECT COUNT(*) FROM charge_sessions")
     suspend fun count(): Int
+}
+
+/** Reads and writes the single in-flight charge-session row. */
+@Dao
+interface OpenChargeSessionDao {
+
+    @Query("SELECT * FROM open_charge_session WHERE id = :id")
+    suspend fun get(id: Int): OpenChargeSessionEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(entity: OpenChargeSessionEntity)
+
+    @Query("DELETE FROM open_charge_session")
+    suspend fun clear()
 }
 
 @Dao

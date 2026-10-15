@@ -4,11 +4,14 @@ import com.faizakram.batterystatus.core.model.BatteryEstimates
 import com.faizakram.batterystatus.core.model.BatterySnapshot
 import com.faizakram.batterystatus.core.model.ChargeSession
 import com.faizakram.batterystatus.core.model.HourlySnapshot
+import com.faizakram.batterystatus.core.model.OpenChargeSession
 import com.faizakram.batterystatus.data.local.dao.BatteryEstimatesDao
 import com.faizakram.batterystatus.data.local.dao.BatterySnapshotDao
 import com.faizakram.batterystatus.data.local.dao.ChargeSessionDao
 import com.faizakram.batterystatus.data.local.dao.HourlySnapshotDao
+import com.faizakram.batterystatus.data.local.dao.OpenChargeSessionDao
 import com.faizakram.batterystatus.data.local.entity.BatteryEstimatesEntity
+import com.faizakram.batterystatus.data.local.entity.OpenChargeSessionEntity
 import com.faizakram.batterystatus.data.local.toDomain
 import com.faizakram.batterystatus.data.local.toEntity
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +25,7 @@ class BatteryRepositoryImpl @Inject constructor(
     private val sessionDao: ChargeSessionDao,
     private val estimatesDao: BatteryEstimatesDao,
     private val hourlySnapshotDao: HourlySnapshotDao,
+    private val openSessionDao: OpenChargeSessionDao,
 ) : BatteryRepository {
 
     override suspend fun recordSnapshot(snapshot: BatterySnapshot): Long =
@@ -65,4 +69,15 @@ class BatteryRepositoryImpl @Inject constructor(
 
     override suspend fun saveEstimates(estimates: BatteryEstimates): Long =
         estimatesDao.upsert(estimates.toEntity())
+
+    override suspend fun getOpenSession(): OpenChargeSession? =
+        openSessionDao.get(OpenChargeSessionEntity.SINGLETON_ID)?.toDomain()
+
+    override suspend fun saveOpenSession(session: OpenChargeSession) {
+        openSessionDao.upsert(session.toEntity())
+    }
+
+    override suspend fun clearOpenSession() {
+        openSessionDao.clear()
+    }
 }

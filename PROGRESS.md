@@ -15,6 +15,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 | M5 | History | ✅ | Charts (level/temperature), session list, retention/downsampling |
 | M6 | Polish | ✅ | Dark mode + dynamic color, full-charge/overheat alerts, a11y, strings, launcher icon |
 | M7 | Hardening | ✅ | OEM quirks layer (per-brand sysfs paths + runtime current normalization), battery-use audit, Play review checklist |
+| M8 | In-app updater | ✅ | GitHub-release check, APK download + `FileProvider` install, Settings tab, version comparison |
+| M9 | Charge-session reliability | ✅ | Power-connect receiver + persisted in-flight session, recorder, Room v4 migration, History "All" range |
 
 ## M1 — Project scaffold (complete)
 
@@ -250,7 +252,43 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - **Signature caveat still applies**: releases ship an ephemeral debug key, so an upgrade over a differently-signed build fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` — in-app updating removes the uninstall step only for consistently-signed builds.
 - **Supersedes M7's audit line** "app performs no network requests": the app now performs one optional HTTPS request when the user opens Settings → Updates (or taps the button); battery readings still never leave the device.
 
+## M9 — Charge-session reliability (complete)
+
+### Problem
+Charge sessions were effectively never logged. Diagnosis:
+- **No `ACTION_POWER_CONNECTED` receiver existed**, so the tracking service only started if the app was launched while already charging (cold start) or the device booted while charging — plugging in with the app closed did nothing.
+- The in-flight session lived only in memory (`ChargeSessionTracker`) and was persisted solely on `SessionClosed`, so process death mid-charge lost the row.
+- On Android 12+, starting a foreground service from the background can throw `ForegroundServiceStartNotAllowedException`, which the old `runCatching` silently swallowed.
+- History could only look back 24 h / 7 d, so older sessions were invisible even if captured.
+
+### Deliverables
+- [x] `core/model/OpenChargeSession.kt` — pure in-flight session (`start`/`accumulate`/`close`), replacing the old in-memory `ChargeSessionTracker` (deleted); tracks the last charging timestamp so a session's duration stays accurate even when the unplug broadcast is missed
+- [x] `receiver/PowerConnectionReceiver.kt` — `@AndroidEntryPoint` receiver for `ACTION_POWER_CONNECTED`/`ACTION_POWER_DISCONNECTED`; `goAsync()` work on `Dispatchers.IO`, delegating to `PowerConnectionHandler`
+- [x] `receiver/PowerConnectionHandler.kt` — testable plug-change logic shared by the receiver and app start: records the reading, opens/closes the session (using the broadcast action, not the possibly-stale sticky snapshot), and best-effort starts `ChargeTrackingService` on connect
+- [x] Manifest — registered `PowerConnectionReceiver` (`exported="false"`, matching `BootCompletedReceiver`)
+- [x] `session/ChargeSessionRecorder.kt` — `@Singleton`, `Mutex`-guarded single entry point shared by the service, worker, receiver and app; opens/accumulates an in-flight session and persists the closed one exactly once
+- [x] Persistence — `OpenChargeSessionEntity` (`open_charge_session`, single row), `OpenChargeSessionDao`, mappers, `BatteryRepository.get/save/clearOpenSession()`, Room **v4** + `MIGRATION_3_4` (SQL byte-for-byte identical to the generated schema)
+- [x] Wiring — `ChargeTrackingService`, `PeriodicSnapshotWorker`, `BatteryStatusApp` and `PowerConnectionHandler` all feed the recorder, so a session opens/closes even when the FGS cannot start
+- [x] `ui/history` — `HistoryRange.ALL` (`sinceMillis`) and "All" filter chip + `history_range_all` string
+- [x] Tests — `OpenChargeSessionTest` (6), `ChargeSessionRecorderTest` (5), `PowerConnectionHandlerTest` (4), open-session round-trip (+1), `HistoryRange` cutoff (+1); shared `testutil` fakes (`FakeBatteryRepository`, `FakeBatteryInfoSource`, `BatteryFixtures`)
+
+### Verification
+- `./gradlew lint test assembleDebug` → **BUILD SUCCESSFUL**
+- 128 unit tests, 0 failures
+- `lint` clean
+- `app/schemas/…/4.json` `createSql` for `open_charge_session` matches `MIGRATION_3_4` exactly
+
+### Notable decisions / gotchas
+- **The in-flight session is persisted, not held in memory.** That is what makes it survive process death and the Android 12+ background-FGS restriction; the receiver and worker can open/close a session with no service running at all.
+- **Real migration, not destructive.** Although `fallbackToDestructiveMigration(dropAllTables = true)` remains for safety, `MIGRATION_3_4` is registered so the upgrade preserves existing snapshots, sessions and estimates.
+- **The receiver trusts the broadcast action, not the snapshot.** `registerReceiver(null, ACTION_BATTERY_CHANGED)` is sticky and can lag the plug transition, so the handler takes `isCharging` from `POWER_CONNECTED`/`DISCONNECTED`.
+- **Sessions end at the last observed charging sample, not at the close moment.** A missed unplug broadcast (common on aggressive OEM ROMs) would otherwise inflate the duration to whenever the session was finally closed. The app start now also closes any stale session left over from a missed disconnect.
+- **Receiver logic lives in `PowerConnectionHandler`, not the receiver.** `goAsync()` + a `BroadcastReceiver` are awkward to unit-test, so the behaviour is extracted and covered directly; the receiver is a thin, untested wrapper.
+- **`ChargeSessionTracker` + its test were deleted**, superseded by `OpenChargeSession`; no dead code left behind.
+- **History default stays 24 h**; "All" is opt-in so the first render remains cheap for long installations.
+
 ## Change log
+- **M9 charge-session reliability** — `ACTION_POWER_CONNECTED`/`DISCONNECTED` receiver, persisted in-flight session (`open_charge_session`, Room v4 + real `MIGRATION_3_4`), unified `ChargeSessionRecorder`, History "All" range, tests.
 - **M8 in-app updater** — GitHub-release update detection, APK download with progress, `FileProvider` install flow, Settings tab, version-comparison tests.
 - **M7 hardening** — OEM quirks layer (per-brand sysfs paths, runtime signed/plausibility current normalization), sysfs multi-dir fallback, unused-permission removal, battery-use audit + Play review checklist.
 - **M6 polish** — dark mode + dynamic color, alerts (full charge / overheat), accessibility semantics, string externalization, runtime notification permission.

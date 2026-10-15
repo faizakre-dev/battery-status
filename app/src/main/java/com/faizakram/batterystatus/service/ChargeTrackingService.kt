@@ -14,10 +14,9 @@ import androidx.core.app.ServiceCompat
 import com.faizakram.batterystatus.MainActivity
 import com.faizakram.batterystatus.R
 import com.faizakram.batterystatus.core.battery.BatteryInfoSource
-import com.faizakram.batterystatus.core.battery.ChargeSessionTracker
-import com.faizakram.batterystatus.core.battery.TrackerEvent
 import com.faizakram.batterystatus.core.model.BatteryEstimates
 import com.faizakram.batterystatus.core.model.BatterySnapshot
+import com.faizakram.batterystatus.core.model.ChargeSession
 import com.faizakram.batterystatus.core.model.isCharging
 import com.faizakram.batterystatus.core.sysfs.SysfsBatteryData
 import com.faizakram.batterystatus.core.sysfs.SysfsBatteryReader
@@ -26,6 +25,7 @@ import com.faizakram.batterystatus.domain.alerts.BatteryAlertDecider
 import com.faizakram.batterystatus.domain.estimates.EstimateUpdate
 import com.faizakram.batterystatus.domain.estimates.EstimatesReducer
 import com.faizakram.batterystatus.notifications.AlertNotifier
+import com.faizakram.batterystatus.session.ChargeSessionRecorder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,8 +48,8 @@ class ChargeTrackingService : Service() {
     @Inject lateinit var repository: BatteryRepository
     @Inject lateinit var sysfsBatteryReader: SysfsBatteryReader
     @Inject lateinit var alertNotifier: AlertNotifier
+    @Inject lateinit var recorder: ChargeSessionRecorder
 
-    private val tracker = ChargeSessionTracker()
     private val alertDecider = BatteryAlertDecider()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var collectJob: Job? = null
@@ -74,13 +74,8 @@ class ChargeTrackingService : Service() {
     private suspend fun observeBattery() {
         batteryInfoSource.snapshots.collect { snapshot ->
             repository.recordSnapshot(snapshot)
-            val events = tracker.onSnapshot(snapshot)
-            events.forEach { event ->
-                if (event is TrackerEvent.SessionClosed) {
-                    repository.recordSession(event.session)
-                }
-            }
-            updateEstimates(snapshot, events)
+            val closed = recorder.onSnapshot(snapshot)
+            updateEstimates(snapshot, closed)
             evaluateAlerts(snapshot)
             if (!snapshot.isCharging) {
                 stopSelf()
@@ -94,14 +89,13 @@ class ChargeTrackingService : Service() {
         }
     }
 
-    private suspend fun updateEstimates(snapshot: BatterySnapshot, events: List<TrackerEvent>) {
+    private suspend fun updateEstimates(snapshot: BatterySnapshot, closed: ChargeSession?) {
         val sysfs = sysfsData ?: sysfsBatteryReader.read().also { sysfsData = it }
         val current = repository.getEstimates() ?: BatteryEstimates.EMPTY
-        val closed = events.filterIsInstance<TrackerEvent.SessionClosed>().lastOrNull()
         val next = EstimatesReducer.reduce(
             current = current,
             update = EstimateUpdate(
-                session = closed?.session,
+                session = closed,
                 observedChargeCounterUah = snapshot.chargeCounterUah,
                 sysfs = sysfs,
                 nowMillis = snapshot.timestampMillis,

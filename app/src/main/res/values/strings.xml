@@ -55,6 +55,7 @@
     <string name="history_title">History</string>
     <string name="history_range_day">24h</string>
     <string name="history_range_week">7d</string>
+    <string name="history_range_all">All</string>
     <string name="history_chart_level">Battery level</string>
     <string name="history_chart_temperature">Temperature</string>
     <string name="history_sessions">Charge sessions</string>

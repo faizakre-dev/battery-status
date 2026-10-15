@@ -4,10 +4,12 @@ import com.faizakram.batterystatus.core.model.BatteryEstimates
 import com.faizakram.batterystatus.core.model.BatterySnapshot
 import com.faizakram.batterystatus.core.model.ChargeSession
 import com.faizakram.batterystatus.core.model.HourlySnapshot
+import com.faizakram.batterystatus.core.model.OpenChargeSession
 import com.faizakram.batterystatus.data.local.entity.BatteryEstimatesEntity
 import com.faizakram.batterystatus.data.local.entity.BatterySnapshotEntity
 import com.faizakram.batterystatus.data.local.entity.ChargeSessionEntity
 import com.faizakram.batterystatus.data.local.entity.HourlySnapshotEntity
+import com.faizakram.batterystatus.data.local.entity.OpenChargeSessionEntity
 import kotlin.math.roundToInt
 
 private const val MICRO_TO_MILLI = 1_000_000L
@@ -111,4 +113,31 @@ fun HourlySnapshotEntity.toDomain(): HourlySnapshot = HourlySnapshot(
     avgTemperatureCelsius = avgTemperatureDeciCelsius?.let { it / 10f },
     minTemperatureCelsius = minTemperatureDeciCelsius?.let { it / 10f },
     maxTemperatureCelsius = maxTemperatureDeciCelsius?.let { it / 10f },
+)
+
+fun OpenChargeSession.toEntity(): OpenChargeSessionEntity = OpenChargeSessionEntity(
+    id = OpenChargeSessionEntity.SINGLETON_ID,
+    startMillis = startMillis,
+    lastMillis = lastMillis,
+    percentFrom = percentFrom,
+    startChargeCounterUah = startChargeCounterUah,
+    lastChargeCounterUah = lastChargeCounterUah,
+    maxPercent = maxPercent,
+    maxTemperatureDeciCelsius = maxTemperatureCelsius?.let { (it * 10).roundToInt() },
+    currentSumUa = currentSumUa,
+    currentSamples = currentSamples,
+    reachedFull = reachedFull,
+)
+
+fun OpenChargeSessionEntity.toDomain(): OpenChargeSession = OpenChargeSession(
+    startMillis = startMillis,
+    lastMillis = lastMillis,
+    percentFrom = percentFrom,
+    startChargeCounterUah = startChargeCounterUah,
+    lastChargeCounterUah = lastChargeCounterUah,
+    maxPercent = maxPercent,
+    maxTemperatureCelsius = maxTemperatureDeciCelsius?.let { it / 10f },
+    currentSumUa = currentSumUa,
+    currentSamples = currentSamples,
+    reachedFull = reachedFull,
 )

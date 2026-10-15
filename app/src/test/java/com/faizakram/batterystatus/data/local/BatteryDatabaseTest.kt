@@ -9,11 +9,13 @@ import com.faizakram.batterystatus.core.model.BatterySnapshot
 import com.faizakram.batterystatus.core.model.BatteryStatus
 import com.faizakram.batterystatus.core.model.ChargeSession
 import com.faizakram.batterystatus.core.model.HourlySnapshot
+import com.faizakram.batterystatus.core.model.OpenChargeSession
 import com.faizakram.batterystatus.core.model.PlugType
 import com.faizakram.batterystatus.data.local.dao.BatteryEstimatesDao
 import com.faizakram.batterystatus.data.local.dao.BatterySnapshotDao
 import com.faizakram.batterystatus.data.local.dao.ChargeSessionDao
 import com.faizakram.batterystatus.data.local.dao.HourlySnapshotDao
+import com.faizakram.batterystatus.data.local.dao.OpenChargeSessionDao
 import com.faizakram.batterystatus.data.local.entity.BatteryEstimatesEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -36,6 +38,7 @@ class BatteryDatabaseTest {
     private lateinit var sessionDao: ChargeSessionDao
     private lateinit var estimatesDao: BatteryEstimatesDao
     private lateinit var hourlyDao: HourlySnapshotDao
+    private lateinit var openSessionDao: OpenChargeSessionDao
 
     @Before
     fun setUp() {
@@ -47,6 +50,7 @@ class BatteryDatabaseTest {
         sessionDao = database.chargeSessionDao()
         estimatesDao = database.batteryEstimatesDao()
         hourlyDao = database.hourlySnapshotDao()
+        openSessionDao = database.openChargeSessionDao()
     }
 
     @After
@@ -123,6 +127,37 @@ class BatteryDatabaseTest {
         assertEquals(-1_000_000, stored.avgCurrentUa)
         assertEquals(true, stored.isFull)
         assertEquals(1, sessionDao.fullChargeSessions().size)
+    }
+
+    @Test
+    fun `open session round-trips and clears`() = runBlocking {
+        val entity = OpenChargeSession(
+            startMillis = 1_000,
+            lastMillis = 1_200,
+            percentFrom = 40,
+            startChargeCounterUah = 1_000_000,
+            lastChargeCounterUah = 1_400_000,
+            maxPercent = 62,
+            maxTemperatureCelsius = 35.3f,
+            currentSumUa = -2_500_000,
+            currentSamples = 2,
+            reachedFull = false,
+        ).toEntity()
+
+        openSessionDao.upsert(entity)
+
+        val stored = openSessionDao.get(com.faizakram.batterystatus.data.local.entity.OpenChargeSessionEntity.SINGLETON_ID)
+        assertNotNull(stored)
+        assertEquals(1_000L, stored?.startMillis)
+        assertEquals(1_200L, stored?.lastMillis)
+        assertEquals(40, stored?.percentFrom)
+        assertEquals(62, stored?.maxPercent)
+        assertEquals(353, stored?.maxTemperatureDeciCelsius)
+        assertEquals(-2_500_000L, stored?.currentSumUa)
+        assertEquals(2, stored?.currentSamples)
+
+        openSessionDao.clear()
+        assertNull(openSessionDao.get(com.faizakram.batterystatus.data.local.entity.OpenChargeSessionEntity.SINGLETON_ID))
     }
 
     @Test

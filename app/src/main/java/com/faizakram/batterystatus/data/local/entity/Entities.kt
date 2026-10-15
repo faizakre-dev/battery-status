@@ -77,3 +77,30 @@ data class HourlySnapshotEntity(
     val minTemperatureDeciCelsius: Int?,
     val maxTemperatureDeciCelsius: Int?,
 )
+
+/**
+ * Single-row store for the charge session currently in flight (always
+ * `id == [SINGLETON_ID]`, empty when the device is unplugged). Persisted so a
+ * session survives process death and background-service start restrictions.
+ */
+@Entity(tableName = "open_charge_session")
+data class OpenChargeSessionEntity(
+    @PrimaryKey
+    val id: Int = SINGLETON_ID,
+    val startMillis: Long,
+    /** Timestamp of the most recent charging sample (accurate session end). */
+    val lastMillis: Long,
+    val percentFrom: Int?,
+    val startChargeCounterUah: Int?,
+    val lastChargeCounterUah: Int?,
+    val maxPercent: Int?,
+    /** Maximum session temperature in tenths of a degree Celsius. */
+    val maxTemperatureDeciCelsius: Int?,
+    val currentSumUa: Long,
+    val currentSamples: Int,
+    val reachedFull: Boolean,
+) {
+    companion object {
+        const val SINGLETON_ID = 1
+    }
+}

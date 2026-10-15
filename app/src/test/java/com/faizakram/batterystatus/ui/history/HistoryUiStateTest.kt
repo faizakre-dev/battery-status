@@ -62,6 +62,15 @@ class HistoryUiStateTest {
         assertFalse(empty.hasAnyData)
     }
 
+    @Test
+    fun `range windows map to look-back cutoffs`() {
+        val now = 1_000_000_000_000L
+
+        assertEquals(now - 24L * 60 * 60 * 1000, HistoryRange.DAY.sinceMillis(now))
+        assertEquals(now - 7L * 24 * 60 * 60 * 1000, HistoryRange.WEEK.sinceMillis(now))
+        assertEquals(0L, HistoryRange.ALL.sinceMillis(now))
+    }
+
     private fun session(
         id: Long,
         start: Long,

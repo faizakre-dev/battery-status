@@ -4,6 +4,7 @@ import com.faizakram.batterystatus.core.model.BatteryEstimates
 import com.faizakram.batterystatus.core.model.BatterySnapshot
 import com.faizakram.batterystatus.core.model.ChargeSession
 import com.faizakram.batterystatus.core.model.HourlySnapshot
+import com.faizakram.batterystatus.core.model.OpenChargeSession
 import kotlinx.coroutines.flow.Flow
 
 /** App-facing gateway for persisting and observing battery data. */
@@ -36,4 +37,13 @@ interface BatteryRepository {
     suspend fun getEstimates(): BatteryEstimates?
 
     suspend fun saveEstimates(estimates: BatteryEstimates): Long
+
+    /** The charge session currently in flight, or null when unplugged. */
+    suspend fun getOpenSession(): OpenChargeSession?
+
+    /** Starts or replaces the in-flight session. */
+    suspend fun saveOpenSession(session: OpenChargeSession)
+
+    /** Clears the in-flight session (after it is closed or when unplugged). */
+    suspend fun clearOpenSession()
 }

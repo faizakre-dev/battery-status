@@ -17,7 +17,7 @@ A lightweight Android app that shows your device's battery health, live charge/d
 - Temperature, voltage, current (signed mA), and battery technology
 
 ### History
-- **24-hour and 7-day charts** for level and temperature (dependency-free Compose `Canvas` charts)
+- **24-hour, 7-day and all-time charts** for level and temperature (dependency-free Compose `Canvas` charts)
 - **Charge session log** — each session's duration, mAh added, and peak temperature
 
 ### Polish
@@ -51,7 +51,7 @@ The easiest way is to install the latest prebuilt APK.
 
 ### 1. Download the APK
 
-**[⬇ Download latest release (v0.3.0)](https://github.com/faizakre-dev/battery-status/releases/latest/download/app-debug.apk)**
+**[⬇ Download latest release (v0.4.0)](https://github.com/faizakre-dev/battery-status/releases/latest/download/app-debug.apk)**
 
 Or open the [Releases page](https://github.com/faizakre-dev/battery-status/releases) and grab `app-debug.apk` from the newest release.
 
@@ -112,8 +112,8 @@ Install the locally built APK with `adb install -r app/build/outputs/apk/debug/a
 | Architecture | MVVM + Clean (UI → Domain → Data) |
 | DI | Hilt |
 | Async | Coroutines + Flow |
-| Persistence | Room (`battery_snapshots`, `charge_sessions`, `battery_estimates`, `battery_snapshots_hourly`) |
-| Background | Foreground service (charge tracking) + WorkManager (periodic sampling) |
+| Persistence | Room (`battery_snapshots`, `charge_sessions`, `battery_estimates`, `battery_snapshots_hourly`, `open_charge_session`) |
+| Background | Power-connect receiver + foreground service (charge tracking) + WorkManager (periodic sampling) |
 | Charts | Hand-rolled Compose `Canvas` (no third-party chart dependency) |
 | Tests | JUnit + Robolectric + Turbine |
 
@@ -128,8 +128,8 @@ Install the locally built APK with `adb install -r app/build/outputs/apk/debug/a
 
 ## How it works
 
-- A **foreground service** samples battery broadcasts **only while charging**, opening/closing a `ChargeSession` on plug/unplug.
-- A **WorkManager** job samples every 15 minutes in the background while idle.
+- A **power-connect receiver** reacts to plug/unplug and starts the **foreground service**, which samples battery broadcasts **only while charging**. The in-flight session is persisted, so a `ChargeSession` still opens/closes even if the background service can't start (Android 12+) or the process is killed mid-charge.
+- A **WorkManager** job samples every 15 minutes in the background while idle and also feeds the session recorder.
 - Raw snapshots are kept for 7 days, then **downsampled to hourly buckets** to keep history compact.
 - Pure, unit-tested domain classes compute cycles, health %, and time estimates; the OEM quirks layer normalizes per-device current readings.
 
@@ -140,8 +140,10 @@ Install the locally built APK with `adb install -r app/build/outputs/apk/debug/a
 | `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_DATA_SYNC` | Keep tracking a charge session while the screen is off |
 | `POST_NOTIFICATIONS` | Full-charge / overheat alerts and the service notification (requested at runtime) |
 | `RECEIVE_BOOT_COMPLETED` | Resume tracking if the device reboots while plugged in |
+| `INTERNET` | Optional update check against GitHub releases (Settings → Updates) |
+| `REQUEST_INSTALL_PACKAGES` | Install a downloaded update |
 
-No internet permission is requested.
+The `INTERNET` permission is used only for the optional update check; battery readings and history never leave the device.
 
 ---
 
@@ -149,15 +151,16 @@ No internet permission is requested.
 
 ```
 app/src/main/java/com/faizakram/batterystatus/
-├─ core/       # model, battery source, sysfs reader, quirks, formatters
+├─ core/       # model, battery source, sysfs reader, quirks, formatters, update
 ├─ data/       # Room entities/DAOs/database, repository
 ├─ domain/     # cycle, health, stats, alerts, retention (pure Kotlin)
 ├─ service/    # ChargeTrackingService (foreground)
+├─ session/    # ChargeSessionRecorder (persisted in-flight session)
 ├─ sync/       # PeriodicSnapshotWorker, SnapshotScheduler
-├─ receiver/   # BootCompletedReceiver
+├─ receiver/   # BootCompletedReceiver, PowerConnectionReceiver
 ├─ notifications/
 ├─ di/         # Hilt modules
-└─ ui/         # dashboard, history, theme, AppRoot
+└─ ui/         # dashboard, history, settings, theme, AppRoot
 ```
 
 See [`PLAN.md`](./PLAN.md) for the full scope and [`PROGRESS.md`](./PROGRESS.md) for per-milestone status.
@@ -184,6 +187,7 @@ Tagging a commit as `v*` triggers a GitHub Actions workflow that runs tests and 
 | M6 Polish (dark mode, alerts, a11y) | ✅ |
 | M7 Hardening (OEM quirks, audit) | ✅ |
 | M8 In-app updater (GitHub releases) | ✅ |
+| M9 Charge-session reliability (receiver + persistence) | ✅ |
 
 Planned for v2: home-screen widget (Glance), CSV export, and configurable alert thresholds.
 
